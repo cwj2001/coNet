@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include <chrono>
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
@@ -48,6 +49,7 @@ namespace CWJ_CO_NET{
 
 
     class Logger;
+    class LoggerManager;
 
 
     enum class LogLevel{
@@ -144,8 +146,6 @@ namespace CWJ_CO_NET{
             virtual void format(std::ostream& os,LogEvent& event) = 0;
         };
     private:
-        static std::unordered_map<char,FormatItem::ptr>formatMap;
-    private:
         std::string m_pattern;
         std::list<FormatItem::ptr> m_formatItems;
     };
@@ -221,7 +221,7 @@ namespace CWJ_CO_NET{
 
         Logger::ptr getLogger(const std::string& name);
 
-         Logger::ptr getMRootLogger() const;
+        Logger::ptr getMRootLogger() const;
 
     private:
         std::unordered_map<std::string,Logger::ptr>m_loggers;

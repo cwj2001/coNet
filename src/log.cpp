@@ -37,6 +37,7 @@ namespace CWJ_CO_NET {
         if (m_logger) {
             m_logger->log(m_level, *this);
         }
+        //TODO assert(m_logger!= nullptr);
         assert(m_logger!= nullptr);
     }
 
@@ -253,27 +254,6 @@ namespace CWJ_CO_NET {
     };
 
 
-    std::unordered_map<char,LogFormatter::FormatItem::ptr> LogFormatter::formatMap{
-#define XX(a,b) \
-         {a ,(FormatItem::ptr (new b))}\
-
-            XX('p',LevelFormat),
-            XX('F',FileFormat),
-            XX('L',LineFormat),
-            XX('d',TimeFormat("")),
-            XX('M',MessageFormat),
-            XX('C',LogNameFormat),
-            XX('T',ThreadIdFormat),
-            XX('N',ThreadNameFormat),
-            XX('c',CoIdFormat),
-            XX('n',EndFormat),
-            XX('t',TabFormat),
-#undef XX
-
-    };
-
-
-
 
     LogFormatter::LogFormatter(std::string m_Pattern) : m_pattern(std::move(m_Pattern)) {
 
@@ -282,6 +262,26 @@ namespace CWJ_CO_NET {
         bool hasM = false;
         bool lastTimeFormat = false;
         std::string mess;
+
+        static std::unordered_map<char,LogFormatter::FormatItem::ptr> formatMap{
+#define XX(a,b) \
+         {a ,(FormatItem::ptr (new b))}\
+
+                XX('p',LevelFormat),
+                XX('F',FileFormat),
+                XX('L',LineFormat),
+                XX('d',TimeFormat("")),
+                XX('M',MessageFormat),
+                XX('C',LogNameFormat),
+                XX('T',ThreadIdFormat),
+                XX('N',ThreadNameFormat),
+                XX('c',CoIdFormat),
+                XX('n',EndFormat),
+                XX('t',TabFormat),
+#undef XX
+        };
+
+
         for(auto i=0;i<m_pattern.size();i++){
 
             const auto & c = m_pattern[i];
@@ -292,8 +292,8 @@ namespace CWJ_CO_NET {
                     this->m_formatItems.emplace_back(new StrFormat(std::move(mess)));
                     mess.clear();
                 }
-                if(LogFormatter::formatMap.count(c)) {
-                    this->m_formatItems.emplace_back(LogFormatter::formatMap[c]);
+                if(formatMap.count(c)) {
+                    this->m_formatItems.emplace_back(formatMap[c]);
                     lastTimeFormat = true;
                 }
                hasM = false;

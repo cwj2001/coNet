@@ -9,12 +9,15 @@
 
 using namespace std;
 using namespace CWJ_CO_NET;
+
+static Logger::ptr logger = GET_LOGGER("sys");
+
 int main(){
     cout<<LogLevel::FATAL<<endl;
     cout<<LogLevel::WARN<<endl;
     cout<<LogLevel::ERROR<<endl;
 
-    auto logger = GET_LOGGER("sys");
+
 
     logger->addAppender(LogAppender::ptr(new FileLogAppender(std::make_shared<LogFormatter>(),LogLevel::WARN,"log.txt")));
 
