@@ -7,15 +7,16 @@
 #include <iostream>
 #include <memory>
 namespace CWJ_CO_NET {
+
     template<typename T, typename X = void, int N = 0>
     class Singleton {
     public:
         static T *GetInstance() {
-            std::cout<<"111"<<std::endl;
             static T one;
             return &one;
         }
     };
+
 
 
     template<typename T, typename X = void, int N = 0>

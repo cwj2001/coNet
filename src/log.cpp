@@ -8,8 +8,72 @@
 #include <memory>
 #include <utility>
 #include <assert.h>
+#include <ctime>
+#include "config.h"
 
 namespace CWJ_CO_NET {
+
+
+
+
+
+    /* ========================================= 进行全局变量的初始化 */
+
+
+    static auto g_logger_list = GET_CONFIG_MGR()->
+            lookup<std::vector<LoggerConfig>>("cwj_co_net.loggers"
+            ,{}
+            ,"the config of loggers' definition");
+    static uint32_t key_update_config =  0x0;
+
+    struct LogGVIniter{
+        LogGVIniter(){
+
+//            std::cerr<<" LogGVIniter():"<<__FILE__<<":"<<__LINE__<<std::endl;
+
+            g_logger_list->addCallBack(key_update_config,[](const std::vector<LoggerConfig>& o
+                    ,const std::vector<LoggerConfig> & n){
+
+                for(auto& a : n){
+                    auto logger = GET_LOGGER(a.m_name);
+                    logger->clearAppender();
+                    if(a.m_name.size())logger->setMName(a.m_name);
+                    if(a.m_level.size()) logger->setMLevel(LogLevelUtil::fromString(a.m_level));
+                    for(auto apr : a.m_aprs){
+                        LogAppender::ptr ptr = nullptr;
+                        switch (LogAppender::GetAprFromStr(apr.m_type)) {
+                            case LogAprType::FILE:
+
+                                if(apr.m_fileName.empty()){
+                                    srand(time(nullptr));//srand()用于初始化随机数发生器
+                                    const static std::string def_name = "cwj_co_net_log.txt";
+                                    apr.m_fileName = def_name;
+                                }
+
+                                ptr.reset(
+                                        new FileLogAppender(
+                                                    LogFormatter::ptr(
+                                                                            new LogFormatter(apr.m_format))
+                                                              ,LogLevelUtil::fromString(apr.m_level)
+                                                              ,apr.m_fileName));
+                                break;
+                            case LogAprType::STDOUT:
+                                ptr.reset(new StdoutLogAppender(LogFormatter::ptr(
+                                        new LogFormatter(apr.m_format))
+                                        ,LogLevelUtil::fromString(apr.m_level)));
+                                break;
+                        }
+                        if(ptr) logger->addAppender(ptr);
+                    }
+                }
+
+            });
+        }
+    };
+
+    static LogGVIniter gvIniter;
+
+
 
     //时间戳转化为时间 毫秒级
     static std::string Stamp2Time(uint64_t timestamp, const std::string &format) {
@@ -36,6 +100,7 @@ namespace CWJ_CO_NET {
     CWJ_CO_NET::LogEvent::~LogEvent() {
         if (m_logger) {
             m_logger->log(m_level, *this);
+
         }
         //TODO assert(m_logger!= nullptr);
         assert(m_logger!= nullptr);
@@ -92,6 +157,7 @@ namespace CWJ_CO_NET {
         for (const auto &a : m_appenders) {
             a->log(level, event);
         }
+
     }
 
     const std::string &Logger::getMName() const {
@@ -129,9 +195,14 @@ namespace CWJ_CO_NET {
         m_root = mRoot;
     }
 
+    void Logger::setMLevel(LogLevel mLevel) {
+        m_level = mLevel;
+    }
+
     void StdoutLogAppender::log(LogLevel level,  LogEvent &event) {
         if (m_level > event.getMLevel()) return;
         m_formatter->format(m_out, event);
+        m_out<<std::endl;
     }
 
     StdoutLogAppender::StdoutLogAppender(const LogFormatter::ptr &mFormatter, LogLevel mLevel)
@@ -257,6 +328,8 @@ namespace CWJ_CO_NET {
 
     LogFormatter::LogFormatter(std::string m_Pattern) : m_pattern(std::move(m_Pattern)) {
 
+        if(m_Pattern.empty())   m_Pattern = GetDefaultFormat();
+
         using std::endl;
         using std::cout;
         bool hasM = false;
@@ -329,20 +402,7 @@ namespace CWJ_CO_NET {
 
     std::ostream &operator<<(std::ostream &os, const LogLevel &level) {
 
-        switch (level){
-#define XX(a,b)             \
-        case a : os << #b ;  \
-        break;              \
-
-        XX(LogLevel::INFO,INFO);
-        XX(LogLevel::DEBUG,DEBUG);
-        XX(LogLevel::ERROR,ERROR);
-        XX(LogLevel::WARN,WARN);
-        XX(LogLevel::FATAL,FATAL);
-
-#undef XX
-        }
-        return os;
+        return os<<LogLevelUtil::toString(level);
     }
 
     FileLogAppender::FileLogAppender(const LogFormatter::ptr &mFormatter, LogLevel mLevel, const std::string &file)
@@ -354,6 +414,7 @@ namespace CWJ_CO_NET {
         if(!m_out) m_out.open(file,std::ios::app);
         assert(m_out);
         m_formatter->format(m_out, event);
+        m_out<<std::endl;
     }
 
     LoggerManager::LoggerManager(): m_root_logger(new Logger("root",LogLevel::DEBUG)) {
@@ -364,7 +425,6 @@ namespace CWJ_CO_NET {
     }
 
     Logger::ptr LoggerManager::getLogger(const std::string &name) {
-
         if(!m_loggers.count(name)) {
             m_loggers[name] = Logger::ptr(new Logger(name, LogLevel::DEBUG));
             m_loggers[name]->setMRoot(m_root_logger);
@@ -374,6 +434,132 @@ namespace CWJ_CO_NET {
 
     Logger::ptr LoggerManager::getMRootLogger() const {
         return m_root_logger;
+    }
+
+
+    template<>
+    class YamlCast<YAML::Node,LoggerConfig>{
+    public:
+        LoggerConfig operator()(const YAML::Node & source){
+            assert(source.IsMap());
+            LoggerConfig conf;
+            if(source["level"])
+                conf.m_level = YamlCast<YAML::Node,std::string>()(source["level"]);
+            if(source["name"])
+                conf.m_name = YamlCast<YAML::Node,std::string>()(source["name"]);
+            if(source["appenders"])
+                conf.m_aprs = std::move(YamlCast<YAML::Node,std::vector<LogAprConfig>>()(source["appenders"]));
+            return conf;
+        }
+    };
+
+    template<>
+    class YamlCast<YAML::Node,LogAprConfig>{
+    public:
+        LogAprConfig operator()(const YAML::Node & source){
+            assert(source.IsMap());
+            LogAprConfig conf;
+            if(source["level"])
+                conf.m_level = YamlCast<YAML::Node,std::string>()(source["level"]);
+            if(source["format"])
+                conf.m_format = YamlCast<YAML::Node,std::string>()(source["format"]);
+            if(source["type"])
+                conf.m_type = YamlCast<YAML::Node,std::string>()(source["type"]);
+            if(source["file"])
+                conf.m_fileName = YamlCast<YAML::Node,std::string>()(source["file"]);
+            return conf;
+        }
+    };
+
+    template<>
+    class YamlCast<LoggerConfig,YAML::Node>{
+    public:
+        YAML::Node operator()(const LoggerConfig & source){
+            YAML::Node root(YAML::NodeType::Map);
+            root["level"] = YamlCast<std::string,YAML::Node>()(source.m_level);
+            root["name"] = YamlCast<std::string,YAML::Node>()(source.m_name);
+            root["appenders"] = YamlCast<std::vector<LogAprConfig>,YAML::Node>()(source.m_aprs);
+            return root;
+        }
+    };
+
+    template<>
+    class YamlCast<LogAprConfig,YAML::Node>{
+    public:
+        YAML::Node operator()(const LogAprConfig & source){
+
+            YAML::Node root(YAML::NodeType::Map);
+            root["level"] = YamlCast<std::string,YAML::Node>()(source.m_level);
+            root["format"] = YamlCast<std::string,YAML::Node>()(source.m_format);
+            root["type"] = YamlCast<std::string,YAML::Node>()(source.m_type);
+
+            return root;
+        }
+    };
+
+
+     LogAprType LogAppender::GetAprFromStr(const std::string &type) {
+         if(type == "file"){
+             return LogAprType::FILE;
+         }else if(type == "stdout"){
+             return LogAprType::STDOUT;
+         }
+        return LogAprType::UNKNOW;
+    }
+
+    std::string LogLevelUtil::toString(const LogLevel &level) {
+         std::string res ;
+        switch (level){
+#define XX(a,b)             \
+        case a : res =  #b ;  \
+        break;              \
+
+            XX(LogLevel::INFO,INFO);
+            XX(LogLevel::DEBUG,DEBUG);
+            XX(LogLevel::ERROR,ERROR);
+            XX(LogLevel::WARN,WARN);
+            XX(LogLevel::FATAL,FATAL);
+            XX(LogLevel::UNKNOW,UNKNOW);
+#undef XX
+        }
+        return std::move(res);
+    }
+
+    LogLevel LogLevelUtil::fromString(const std::string &str) {
+
+#define XX(a,b) \
+        if(str == #b){ \
+            return a; \
+        }
+
+        XX(LogLevel::INFO,INFO);
+        XX(LogLevel::DEBUG,DEBUG);
+        XX(LogLevel::ERROR,ERROR);
+        XX(LogLevel::WARN,WARN);
+        XX(LogLevel::FATAL,FATAL);
+#undef XX
+        return LogLevel::UNKNOW;
+    }
+
+    bool LogAprConfig::operator==(const LogAprConfig &rhs) const {
+        return m_type == rhs.m_type &&
+               m_format == rhs.m_format &&
+               m_level == rhs.m_level &&
+               m_fileName == rhs.m_fileName;
+    }
+
+    bool LogAprConfig::operator!=(const LogAprConfig &rhs) const {
+        return !(rhs == *this);
+    }
+
+    bool LoggerConfig::operator==(const LoggerConfig &rhs) const {
+        return m_aprs == rhs.m_aprs &&
+               m_level == rhs.m_level &&
+               m_name == rhs.m_name;
+    }
+
+    bool LoggerConfig::operator!=(const LoggerConfig &rhs) const {
+        return !(rhs == *this);
     }
 }
 

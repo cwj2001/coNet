@@ -6,7 +6,6 @@
 #define CWJ_CO_NET_LOG_H
 
 #include <inttypes.h>
-#include "singleton.h"
 #include <string>
 #include <memory>
 #include <list>
@@ -16,12 +15,15 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <vector>
+#include "singleton.h"
+#include "util.h"
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
       LogEvent(                                                             \
             __FILE__,__LINE__,                                              \
-            1,0,                                                            \
+            GetThreadId(),0,                                                            \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
             "thread_name",level,logger).getMSs()
@@ -58,10 +60,39 @@ namespace CWJ_CO_NET{
             WARN = 3,
             ERROR = 4,
             FATAL = 5,
+            UNKNOW = 6,
 
     };
 
+    class LogLevelUtil{
+    public:
+        static std::string toString(const LogLevel& level);
+        static LogLevel fromString(const std::string& str);
+    };
+
     std::ostream &operator<<(std::ostream &os, const LogLevel &level);
+
+
+    struct LogAprConfig{
+        std::string m_type;
+        std::string m_format;
+        std::string m_level;
+        std::string m_fileName;
+
+        bool operator==(const LogAprConfig &rhs) const;
+
+        bool operator!=(const LogAprConfig &rhs) const;
+    };
+    struct LoggerConfig{
+        std::vector<LogAprConfig> m_aprs;
+        std::string m_level;
+        std::string m_name;
+
+        bool operator==(const LoggerConfig &rhs) const;
+
+        bool operator!=(const LoggerConfig &rhs) const;
+    };
+
 
     class LogEvent{
     public:
@@ -135,7 +166,8 @@ namespace CWJ_CO_NET{
         using ptr = std::shared_ptr<LogFormatter>;
         void format(std::ostream& os,LogEvent& event);
 
-        LogFormatter(std::string mPattern = "[%p]%t  %d{%Y-%m-%d %H:%M:%S} %t ==> %t [%C] %t%F %t%L %t%T %t%N %t%c %t%M");
+        LogFormatter(std::string mPattern = GetDefaultFormat());
+
 
     public:
         class FormatItem{
@@ -145,9 +177,21 @@ namespace CWJ_CO_NET{
             virtual ~FormatItem() {}
             virtual void format(std::ostream& os,LogEvent& event) = 0;
         };
+
+    private:
+        static const std::string& GetDefaultFormat(){
+            static std::string str = "[%p]%t  %d{%Y-%m-%d %H:%M:%S} %t [%C]  %t ==> %t%F:%L %t%T %t%N %t%c %t%M";
+            return str;
+        };
     private:
         std::string m_pattern;
         std::list<FormatItem::ptr> m_formatItems;
+    };
+
+    enum class LogAprType{
+        STDOUT,
+        FILE,
+        UNKNOW,
     };
 
     class LogAppender{
@@ -157,7 +201,9 @@ namespace CWJ_CO_NET{
 
         virtual void log(LogLevel level,LogEvent& event) = 0;
         virtual ~LogAppender(){};
+    public:
 
+        static LogAprType GetAprFromStr(const std::string& type);
     protected:
         LogFormatter::ptr m_formatter;
         LogLevel m_level;
@@ -177,12 +223,15 @@ namespace CWJ_CO_NET{
 
         void addAppender(LogAppender::ptr);
         void delAppender(LogAppender::ptr);
+        void clearAppender()  {m_appenders.clear();};
 
         void setMName(const std::string &mName);
 
         const ptr &getMRoot() const;
 
         void setMRoot(const ptr &mRoot);
+
+        void setMLevel(LogLevel mLevel);
 
     private:
         std::string m_name;
@@ -204,9 +253,12 @@ namespace CWJ_CO_NET{
 
     class FileLogAppender : public LogAppender{
     public:
+        using ptr = std::shared_ptr<FileLogAppender>;
         FileLogAppender(const LogFormatter::ptr &mFormatter, LogLevel mLevel, const std::string &file);
 
         void log(LogLevel level, LogEvent& event) override;
+
+    public:
     private:
         std::string file;
         std::ofstream m_out;
@@ -216,13 +268,13 @@ namespace CWJ_CO_NET{
 
     public:
         using ptr = std::shared_ptr<LoggerManager>;
-
-        LoggerManager();
+        friend class Singleton<LoggerManager>;
 
         Logger::ptr getLogger(const std::string& name);
 
         Logger::ptr getMRootLogger() const;
-
+    private:
+        LoggerManager();
     private:
         std::unordered_map<std::string,Logger::ptr>m_loggers;
         Logger::ptr m_root_logger;

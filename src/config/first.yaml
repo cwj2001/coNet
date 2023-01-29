@@ -5,20 +5,19 @@ cwj_co_net:
       appenders:
         -
           type: stdout
-          format: [stdout]%t[%p]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M
+          format: "[stdout]%t[%p]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M"
           level: DEBUG
         -
           type: file
-          format: [file][ %p ]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M
+          format: "[file][ %p ]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M"
           level: INFO
-
     -
       name: root
       level: INFO
       appenders:
         -
           type: stdout
-          format: [ %p ]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M
+          format: "[ %p ]%t[%C]  %t ==> %t%F %t%L %t%T %t%N %t%c %t%M"
           level: DEBUG
 
 

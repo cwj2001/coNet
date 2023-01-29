@@ -6,13 +6,16 @@
 #include <iostream>
 #include <memory>
 #include <chrono>
-
+#include <assert.h>
 using namespace std;
 using namespace CWJ_CO_NET;
 
 static Logger::ptr logger = GET_LOGGER("sys");
 
 int main(){
+
+    assert(logger);
+
     cout<<LogLevel::FATAL<<endl;
     cout<<LogLevel::WARN<<endl;
     cout<<LogLevel::ERROR<<endl;
