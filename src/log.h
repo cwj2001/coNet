@@ -18,15 +18,16 @@
 #include <vector>
 #include "singleton.h"
 #include "util.h"
+#include "thread.h"
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
       LogEvent(                                                             \
             __FILE__,__LINE__,                                              \
-            GetThreadId(),0,                                                            \
+            Thread::GetPId(),0,                                                            \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
-            "thread_name",level,logger).getMSs()
+            Thread::GetName(),level,logger).getMSs()
 
 #define DEBUG_LOG(logger) \
         CO_NET_LOG(logger,LogLevel::DEBUG)

@@ -15,7 +15,7 @@ namespace CWJ_CO_NET{
 
         NonCopyAble(const NonCopyAble&) = delete;
 
-        ~NonCopyAble() = default;
+        virtual ~NonCopyAble() = default;
 
         NonCopyAble& operator=(const NonCopyAble&) = delete;
 

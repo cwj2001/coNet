@@ -3,10 +3,8 @@
 //
 
 #include "log.h"
-#include <fstream>
 #include <iostream>
 #include <memory>
-#include <utility>
 #include <assert.h>
 #include <ctime>
 #include "config.h"

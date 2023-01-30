@@ -29,6 +29,10 @@ namespace CWJ_CO_NET{
 
     pid_t GetThreadId();
 
+    void Backtrace(std::vector<std::string>&trace,int size,int skip);
+
+    std::string BacktraceToStr(int size,int skip,const std::string& prefix,const std::string& suffix);
+
 }
 
 #endif //CWJ_CO_NET_UTIL_H

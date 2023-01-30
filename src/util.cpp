@@ -2,9 +2,15 @@
 // Created by 抑~风 on 2023/1/29.
 //
 #include "util.h"
-#include "cstring"
+#include "log.h"
+#include <cstring>
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
+#include <execinfo.h>
+#include <memory>
+#include <iomanip>
+
+#include <sstream>
 namespace CWJ_CO_NET{
     std::string GetAbsolutePath(const std::string & path){
         if(path.empty())    return "/";
@@ -58,6 +64,55 @@ namespace CWJ_CO_NET{
     pid_t GetThreadId() {
         return syscall(SYS_gettid);
     }
+
+    static std::string traceToStr(const char * trace){
+//        static char tmp [256];
+        size_t size = 0;
+        int status = 0;
+        std::string rt;
+        rt.resize(256);
+        if(1 == sscanf(trace, "%*[^(]%*[^_]%255[^)+]",&rt[0])) {
+            char* v = abi::__cxa_demangle(&rt[0], nullptr, &size, &status);
+            if(v) {
+                std::string result(v);
+                free(v);
+                return result;
+            }
+        }
+        if(1 == sscanf(trace, "%255s", &rt[0])) {
+            return rt;
+        }
+        return trace;
+    }
+
+    void Backtrace(std::vector<std::string>&traces,int size,int skip){
+
+        static auto Deleter = [](const auto &a){free(a);};
+        using DeleterType = decltype(Deleter);
+
+        auto buf = std::unique_ptr<void*,DeleterType>((void**)malloc(size),Deleter);
+        int n = backtrace(buf.get(),size);
+        auto trace_sym = std::unique_ptr<char*,DeleterType>(backtrace_symbols(buf.get(),n),Deleter);
+
+        if(!trace_sym){
+            ERROR_LOG(GET_LOGGER("system"))<<"Backtrace backtrace_symbols errors ";
+        }
+        for(int i=skip;i<n;i++){
+            traces.emplace_back(traceToStr(trace_sym.get()[i]));
+        }
+        return ;
+    }
+
+    std::string BacktraceToStr(int size, int skip, const std::string &prefix,const std::string& suffix) {
+        ERROR_LOG(GET_LOGGER("system"))<<"BacktraceToStr";
+        std::vector<std::string>list;
+        Backtrace(list,size,skip);
+        std::stringstream ss;
+        for(int i=0;i<list.size();i++){
+            ss<<prefix<<" ["<<std::setw(2)<<std::setfill('0')<<i<<"] "<<list[i]<<suffix;
+        }
+        return ss.str();
+    };
 
 }
 
