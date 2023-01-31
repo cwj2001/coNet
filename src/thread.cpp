@@ -2,14 +2,21 @@
 // Created by 抑~风 on 2023/1/30.
 //
 
+
 #include "thread.h"
 #include "log.h"
+#include "config.h"
+#include "util.h"
 
 namespace CWJ_CO_NET{
 
+    static auto g_default_main_thread_name
+                                = GET_CONFIG_MGR()->
+                                        lookup<std::string>("cwj_co_net.thread.root_name","main","thread root name");
+
     static auto g_logger = GET_LOGGER("system");
     static thread_local Thread::ptr g_cur_thread  = nullptr;
-    static thread_local std::string g_cur_thread_name = "UNKNOW" ;
+    static thread_local std::string g_cur_thread_name = "unnamed";//g_default_main_thread_name->getMVal() ;
 
     Thread::Thread(const std::string &mName, const Thread::CallBack &cb)
                                                 : m_name(mName)
@@ -18,13 +25,11 @@ namespace CWJ_CO_NET{
     }
 
     Thread::~Thread() {
-        WARN_LOG(g_logger)<<"~Thread";
+//        WARN_LOG(g_logger)<<"~Thread";
         if(m_thread) {
             pthread_detach(m_thread);
             m_thread = 0;
         }
-        g_cur_thread.reset();
-        g_cur_thread_name = "UNKNOW";
     }
 
     pid_t Thread::getMId() const {
@@ -36,7 +41,7 @@ namespace CWJ_CO_NET{
     }
 
     void Thread::join() {
-        ERROR_LOG(g_logger)<<"-=-=-=-==-"<<"join";
+//        ERROR_LOG(g_logger)<<"-=-=-=-==-"<<"join";
         if(m_thread){
             if(pthread_join(m_thread, nullptr)){
                 ERROR_LOG(g_logger)<< "thread :" << m_name << " pthread_join error ";
@@ -66,13 +71,17 @@ namespace CWJ_CO_NET{
         g_cur_thread_name = g_cur_thread->m_name;
         pthread_setname_np(pthread_self(), g_cur_thread_name.substr(0, 15).c_str());
         g_cur_thread->m_id = GetThreadId();
-        ERROR_LOG(g_logger)<<GetThreadId()<<"===============";
+//        ERROR_LOG(g_logger)<<GetThreadId()<<"===============";
         CallBack cb;
         cb.swap(g_cur_thread->m_cb);
 
         g_cur_thread->m_sem.notify();
         cb();
-        WARN_LOG(g_logger)<<"run finsih";
+//        WARN_LOG(g_logger)<<"run finsih";
+
+        g_cur_thread_name = "";
+        g_cur_thread.reset();
+
         return 0;
     }
 
@@ -87,7 +96,7 @@ namespace CWJ_CO_NET{
         // 这里用信号量的原因，就是为了保证在pthread 的run 初始化好之前，保证Thread仍然存在
         m_sem.wait();
 
-        INFO_LOG(g_logger)<<" create "<<m_thread;
+//        INFO_LOG(g_logger)<<" create "<<m_thread;
     }
 
     void  Thread::SetName(const std::string &name) {

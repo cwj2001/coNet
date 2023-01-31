@@ -6,7 +6,6 @@
 #define CWJ_CO_NET_UTIL_H
 #include <cxxabi.h>
 #include <unistd.h>
-#include "log.h"
 #include <memory>
 #include <filesystem>
 #include <vector>
@@ -31,7 +30,7 @@ namespace CWJ_CO_NET{
 
     void Backtrace(std::vector<std::string>&trace,int size,int skip);
 
-    std::string BacktraceToStr(int size,int skip,const std::string& prefix,const std::string& suffix);
+    std::string BacktraceToStr(int size = 256,int skip = 0,const std::string& prefix = "",const std::string& suffix = "\n");
 
 }
 

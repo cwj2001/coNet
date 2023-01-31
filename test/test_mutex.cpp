@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include "util.h"
 #include "mutex.h"
+#include "log.h"
 using namespace std;
 using namespace CWJ_CO_NET;
 
@@ -47,6 +48,8 @@ int main() {
     }
 
     cout<<num<<endl;
+
+    ERROR_LOG(GET_ROOT_LOGGER())<<num<<"=============="<<endl;
 
     return 0;
 

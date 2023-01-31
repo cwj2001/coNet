@@ -36,7 +36,7 @@ namespace CWJ_CO_NET {
 
         Logger::ptr logger = GET_LOGGER("system");
         YAML::Node root = YAML::LoadFile(fileName);
-        std::cout<<root<<std::endl;
+//        std::cout<<root<<std::endl;
         FileConfigMapType allM;
 
         listAllMember("", root, allM);

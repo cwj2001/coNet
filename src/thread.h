@@ -12,8 +12,8 @@
 #include <stdexcept>
 
 #include "mutex.h"
-#include "util.h"
 #include "noncopyable.h"
+
 
 namespace CWJ_CO_NET{
 
@@ -45,7 +45,7 @@ class Thread : public std::enable_shared_from_this<Thread>,public NonCopyAble {
     private:
         pid_t m_id = 0;
         pthread_t m_thread = 0;
-        std::string m_name = "UNKNOW";
+        std::string m_name;
         CallBack m_cb;
         Semaphore m_sem;
     };

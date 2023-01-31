@@ -13,23 +13,28 @@ include_directories(/usr/local/include)
 #添加库文件搜索路径
 link_directories(/usr/local/lib)
 
-add_executable(main main.cpp ../src/util.cpp ../src/config.cpp ../src/log.cpp)
+aux_source_directory(../src SRC_LIST) # 定义变量，存储当前目录下的所有源文件
 
-add_executable(test_config
-        ../src/singleton.h test_config.cpp ../src/config.cpp ../src/config.h ../src/log.cpp
-        ../src/util.cpp)
-add_executable(test_log test_log.cpp ../src/log.h ../src/log.cpp ../src/singleton.h)
-add_executable(test_marco test_marco.cpp ../src/macro.h ../src/log.cpp ../src/config.cpp ../src/util.cpp)
-add_executable(test_mutex test_mutex.cpp ../src/mutex.cpp ../src/util.cpp ../src/log.cpp ../src/config.cpp ../src/thread.cpp)
-add_executable(test_thread test_thread.cpp
-                            ../src/thread.cpp ../src/mutex.cpp
-                            ../src/util.cpp ../src/log.cpp
-                            ../src/config.cpp ../src/thread.cpp)
+MESSAGE(${SRC_LIST})
+
+add_executable(test_template test_template.cpp)
+
+add_executable(main main.cpp ${SRC_LIST})
+
+add_executable(test_config test_config.cpp ${SRC_LIST})
+add_executable(test_coroutine test_coroutine.cpp ${SRC_LIST})
+add_executable(test_log test_log.cpp  ${SRC_LIST})
+add_executable(test_marco test_marco.cpp ${SRC_LIST})
+add_executable(test_mutex test_mutex.cpp ${SRC_LIST})
+add_executable(test_thread test_thread.cpp ${SRC_LIST})
 
 
 #target_link_libraries( test_config ${yaml-cpp_LIBS} )
-target_link_libraries( test_config -lyaml-cpp )
-target_link_libraries( main -lyaml-cpp )
-target_link_libraries( test_marco -lyaml-cpp )
+
+target_link_libraries( main -lyaml-cpp -lpthread )
+target_link_libraries( test_config -lyaml-cpp -lpthread )
+target_link_libraries( test_log -lyaml-cpp -lpthread )
+target_link_libraries( test_marco -lyaml-cpp -lpthread)
 target_link_libraries( test_mutex -lpthread -lyaml-cpp)
 target_link_libraries( test_thread -lpthread -lyaml-cpp)
+target_link_libraries( test_coroutine -lpthread -lyaml-cpp)

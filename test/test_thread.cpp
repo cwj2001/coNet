@@ -16,6 +16,9 @@ static volatile size_t num = 0;
 static Mutex g_mutex;
 static CASLock g_cas;
 static RWMutex g_rw_mutex;
+
+void run_and_test_Thread();
+
 void add(){
 //    cout<<"thread"<<GetThreadId()<<"run add"<<endl;
     while(true){
@@ -43,7 +46,19 @@ void addNum(){
 
 int main() {
 
-    for(int j=0;j<100;j++){
+    cout<<Thread::GetName()<<endl;
+    run_and_test_Thread();
+
+
+//    sleep(1000000);
+
+    return 0;
+
+    return 0;
+}
+
+void run_and_test_Thread() {
+    for(int j=0; j < 100; j++){
         num = 0;
         vector<Thread::ptr>list;
         for(int i=0;i<10;i++){
@@ -59,14 +74,6 @@ int main() {
         cout<<"-----------------------------------"<<endl<<endl;
 
     }
-
-
-
-//    sleep(1000000);
-
-    return 0;
-
-    return 0;
 }
 
 

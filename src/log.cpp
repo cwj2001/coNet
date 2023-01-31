@@ -2,16 +2,16 @@
 // Created by 抑~风 on 2023/1/25.
 //
 
-#include "log.h"
 #include <iostream>
 #include <memory>
 #include <assert.h>
 #include <ctime>
+
+#include "log.h"
 #include "config.h"
+#include "mutex.h"
 
 namespace CWJ_CO_NET {
-
-
 
 
 
@@ -101,6 +101,7 @@ namespace CWJ_CO_NET {
 
         }
         //TODO assert(m_logger!= nullptr);
+//        BacktraceToStr();
         assert(m_logger!= nullptr);
     }
 
@@ -152,6 +153,8 @@ namespace CWJ_CO_NET {
 
     void Logger::log(LogLevel level,LogEvent &event) {
         if(m_appenders.empty() && m_root)   m_root->log(level,event);
+        // 避免在遍历的时候，另外
+        RWMutex::RLock lock(m_mutex);
         for (const auto &a : m_appenders) {
             a->log(level, event);
         }
@@ -167,10 +170,12 @@ namespace CWJ_CO_NET {
     }
 
     void Logger::addAppender(LogAppender::ptr a) {
+        RWMutex::WLock lock(m_mutex);
         m_appenders.push_back(a);
     }
 
     void Logger::delAppender(LogAppender::ptr one) {
+        RWMutex::WLock lock(m_mutex);
         for(auto  it = m_appenders.begin(); it != m_appenders.end(); it++){
             if(*it == one){
                 m_appenders.erase(it);
@@ -180,25 +185,30 @@ namespace CWJ_CO_NET {
     }
 
     void Logger::setMName(const std::string &mName) {
+        RWMutex::WLock lock(m_mutex);
         m_name = mName;
     }
 
     Logger::Logger(const std::string &mName, LogLevel mLevel) : m_name(mName), m_level(mLevel) {}
 
     const Logger::ptr &Logger::getMRoot() const {
+        // TODO 需要加读锁
         return m_root;
     }
 
     void Logger::setMRoot(const Logger::ptr &mRoot) {
+        RWMutex::WLock lock(m_mutex);
         m_root = mRoot;
     }
 
     void Logger::setMLevel(LogLevel mLevel) {
+        RWMutex::WLock lock(m_mutex);
         m_level = mLevel;
     }
 
     void StdoutLogAppender::log(LogLevel level,  LogEvent &event) {
         if (m_level > event.getMLevel()) return;
+        Mutex::Lock lock(m_mutex);
         m_formatter->format(m_out, event);
         m_out<<std::endl;
     }
@@ -409,6 +419,7 @@ namespace CWJ_CO_NET {
 
     void FileLogAppender::log(LogLevel level, LogEvent &event) {
         if (m_level > event.getMLevel()) return;
+        Mutex::Lock lock(m_mutex);
         if(!m_out) m_out.open(file,std::ios::app);
         assert(m_out);
         m_formatter->format(m_out, event);
@@ -423,7 +434,11 @@ namespace CWJ_CO_NET {
     }
 
     Logger::ptr LoggerManager::getLogger(const std::string &name) {
+
+        RWMutex::RLock r_lock(m_mutex);
         if(!m_loggers.count(name)) {
+            r_lock.unlock();
+            RWMutex::WLock w_lock(m_mutex);
             m_loggers[name] = Logger::ptr(new Logger(name, LogLevel::DEBUG));
             m_loggers[name]->setMRoot(m_root_logger);
         }

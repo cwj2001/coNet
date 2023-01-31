@@ -16,15 +16,18 @@
 #include <string>
 #include <chrono>
 #include <vector>
+
 #include "singleton.h"
 #include "util.h"
 #include "thread.h"
+#include "coroutine.h"
+#include "mutex.h"
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
       LogEvent(                                                             \
             __FILE__,__LINE__,                                              \
-            Thread::GetPId(),0,                                                            \
+            Thread::GetPId(),Coroutine::GetId(),                            \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
             Thread::GetName(),level,logger).getMSs()
@@ -239,7 +242,7 @@ namespace CWJ_CO_NET{
         LogLevel m_level;
         std::list<LogAppender::ptr> m_appenders;
         Logger::ptr m_root;
-
+        RWMutex m_mutex;
     };
 
 
@@ -250,6 +253,7 @@ namespace CWJ_CO_NET{
         void log(LogLevel level, LogEvent& event) override;
     private:
         std::ostream& m_out;
+        Mutex m_mutex;
     };
 
     class FileLogAppender : public LogAppender{
@@ -263,6 +267,7 @@ namespace CWJ_CO_NET{
     private:
         std::string file;
         std::ofstream m_out;
+        Mutex m_mutex;
     };
 
     class LoggerManager{
@@ -279,6 +284,7 @@ namespace CWJ_CO_NET{
     private:
         std::unordered_map<std::string,Logger::ptr>m_loggers;
         Logger::ptr m_root_logger;
+        RWMutex m_mutex;
     };
 
     using SingleLoggerMgr = Singleton<LoggerManager>;

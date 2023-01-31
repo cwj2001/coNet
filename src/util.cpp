@@ -1,16 +1,17 @@
 //
 // Created by 抑~风 on 2023/1/29.
 //
-#include "util.h"
-#include "log.h"
 #include <cstring>
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <execinfo.h>
 #include <memory>
 #include <iomanip>
-
 #include <sstream>
+
+#include "util.h"
+#include "log.h"
+
 namespace CWJ_CO_NET{
     std::string GetAbsolutePath(const std::string & path){
         if(path.empty())    return "/";
@@ -104,7 +105,7 @@ namespace CWJ_CO_NET{
     }
 
     std::string BacktraceToStr(int size, int skip, const std::string &prefix,const std::string& suffix) {
-        ERROR_LOG(GET_LOGGER("system"))<<"BacktraceToStr";
+        std::cout<<"==="<<std::endl;
         std::vector<std::string>list;
         Backtrace(list,size,skip);
         std::stringstream ss;
