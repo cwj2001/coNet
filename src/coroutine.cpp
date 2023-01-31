@@ -10,6 +10,7 @@
 #include "log.h"
 #include "allocator.h"
 #include "config.h"
+#include "scheduler.h"
 
 namespace CWJ_CO_NET {
 
@@ -35,7 +36,10 @@ namespace CWJ_CO_NET {
         g_co_count++;
     }
 
-    Coroutine::Coroutine(Coroutine::CallBack cb, size_t stack_size, bool user_caller) {
+    Coroutine::Coroutine(Coroutine::CallBack cb, size_t stack_size, bool use_scheduler) : m_use_scheduler(
+            use_scheduler) {
+
+        CWJ_ASSERT(GetThis());// 不仅仅是断言，还必须执行GetThis，因为该函数有副作用
 
         m_id = (g_co_id++);
 
@@ -64,21 +68,45 @@ namespace CWJ_CO_NET {
 
 
     void Coroutine::call() {
-        if(m_state == CoState::TERM || m_state == CoState::EXCEPT)  return ;
-        INFO_LOG(g_logger) << "Coroutine::call ";
-        CWJ_ASSERT(GetThis());// 不仅仅是断言，还必须执行GetThis，因为该函数有副作用
+        if (m_state == CoState::TERM || m_state == CoState::EXCEPT) return;
+        if (g_thread_cur_co == g_thread_main_co) return;
+
+//        INFO_LOG(g_logger) << "Coroutine::call ";
         g_thread_cur_co = this->shared_from_this();
         m_state = CoState::EXEC;
-        if (swapcontext(&g_thread_main_co->m_ctx, &m_ctx)) {
-            CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+
+        if (m_use_scheduler) {
+
+            auto co = Scheduler::GetScheduleCo();
+            CWJ_ASSERT(co);
+            if (swapcontext(&co->m_ctx, &m_ctx)) {
+                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+            }
+
+        } else {
+
+            CWJ_ASSERT(g_thread_main_co);
+            if (swapcontext(&g_thread_main_co->m_ctx, &m_ctx)) {
+                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+            }
+
         }
     }
 
     void Coroutine::back() {
-        if(g_thread_cur_co == g_thread_main_co) return ;
+        if (g_thread_cur_co == g_thread_main_co) return;
         g_thread_cur_co = g_thread_main_co;
-        if (swapcontext(&m_ctx, &g_thread_main_co->m_ctx)) {
-            CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+        if(m_use_scheduler){
+            auto co = Scheduler::GetScheduleCo();
+            CWJ_ASSERT(co);
+            if (swapcontext(&m_ctx, &co->m_ctx)) {
+                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+            }
+        }else {
+            CWJ_ASSERT(g_thread_main_co);
+            if (swapcontext(&m_ctx, &g_thread_main_co->m_ctx)) {
+                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
+            }
         }
     }
 
@@ -90,7 +118,6 @@ namespace CWJ_CO_NET {
             g_thread_main_co = main_co;
             g_thread_cur_co = main_co;
         }
-
         return g_thread_cur_co;
     }
 
@@ -101,14 +128,14 @@ namespace CWJ_CO_NET {
 
         try {
             cur_co->m_cb();
-            INFO_LOG(g_logger)<<"m_cb finish";
+            INFO_LOG(g_logger) << "m_cb finish";
             cur_co->m_state = CoState::TERM;
         } catch (std::exception &e) {
             cur_co->m_state = CoState::EXCEPT;
             ERROR_LOG(g_logger) << "Coroutine::run() fail" << BacktraceToStr();
         }
 
-        INFO_LOG(g_logger)<<"can reash run finish";
+        INFO_LOG(g_logger) << "can reash run finish";
 
         auto p = cur_co.get();
         cur_co.reset();

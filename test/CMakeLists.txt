@@ -26,15 +26,19 @@ add_executable(test_coroutine test_coroutine.cpp ${SRC_LIST})
 add_executable(test_log test_log.cpp  ${SRC_LIST})
 add_executable(test_marco test_marco.cpp ${SRC_LIST})
 add_executable(test_mutex test_mutex.cpp ${SRC_LIST})
+add_executable(test_scheduler test_scheduler.cpp ${SRC_LIST})
 add_executable(test_thread test_thread.cpp ${SRC_LIST})
 
 
 #target_link_libraries( test_config ${yaml-cpp_LIBS} )
 
 target_link_libraries( main -lyaml-cpp -lpthread )
+
 target_link_libraries( test_config -lyaml-cpp -lpthread )
+target_link_libraries( test_coroutine -lpthread -lyaml-cpp)
 target_link_libraries( test_log -lyaml-cpp -lpthread )
 target_link_libraries( test_marco -lyaml-cpp -lpthread)
 target_link_libraries( test_mutex -lpthread -lyaml-cpp)
+target_link_libraries( test_scheduler -lpthread -lyaml-cpp)
+
 target_link_libraries( test_thread -lpthread -lyaml-cpp)
-target_link_libraries( test_coroutine -lpthread -lyaml-cpp)
