@@ -23,7 +23,7 @@ namespace CWJ_CO_NET {
     std::atomic<size_t> g_co_id{1};
     std::atomic<size_t> g_co_count{0};
 
-    Coroutine::Coroutine() {
+    Coroutine::Coroutine() : m_use_scheduler(false) {
         m_id = g_co_id;
         g_co_id++;
         m_state = CoState::EXEC;
@@ -62,14 +62,15 @@ namespace CWJ_CO_NET {
 
         g_co_count++;
 
-        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
+//        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
 
     }
 
 
     void Coroutine::call() {
+
         if (m_state == CoState::TERM || m_state == CoState::EXCEPT) return;
-        if (g_thread_cur_co == g_thread_main_co) return;
+        if (g_thread_cur_co == shared_from_this()) return;
 
 //        INFO_LOG(g_logger) << "Coroutine::call ";
         g_thread_cur_co = this->shared_from_this();
@@ -94,19 +95,27 @@ namespace CWJ_CO_NET {
     }
 
     void Coroutine::back() {
-        if (g_thread_cur_co == g_thread_main_co) return;
-        g_thread_cur_co = g_thread_main_co;
-        if(m_use_scheduler){
-            auto co = Scheduler::GetScheduleCo();
-            CWJ_ASSERT(co);
-            if (swapcontext(&m_ctx, &co->m_ctx)) {
-                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
-            }
+        Coroutine::ptr co = nullptr;
+        co = GetMainCo(shared_from_this());
+        swapCoroutine(co);
+    }
+
+    Coroutine::ptr Coroutine::GetMainCo(Coroutine::ptr co) {
+        if(co->m_use_scheduler){
+            return Scheduler::GetScheduleCo();
         }else {
-            CWJ_ASSERT(g_thread_main_co);
-            if (swapcontext(&m_ctx, &g_thread_main_co->m_ctx)) {
-                CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
-            }
+            return g_thread_main_co;
+        }
+    }
+
+    void Coroutine::swapCoroutine(const Coroutine::ptr &co){
+        CWJ_ASSERT(co);
+        if(g_thread_cur_co == co)   return ;
+        g_thread_cur_co = co;
+//        CWJ_ASSERT(false);
+        co->m_state = CoState::EXEC;
+        if (swapcontext(&m_ctx, &co->m_ctx)) {
+            CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
         }
     }
 
@@ -128,14 +137,14 @@ namespace CWJ_CO_NET {
 
         try {
             cur_co->m_cb();
-            INFO_LOG(g_logger) << "m_cb finish";
+//            INFO_LOG(g_logger) << "m_cb finish";
             cur_co->m_state = CoState::TERM;
         } catch (std::exception &e) {
             cur_co->m_state = CoState::EXCEPT;
             ERROR_LOG(g_logger) << "Coroutine::run() fail" << BacktraceToStr();
         }
 
-        INFO_LOG(g_logger) << "can reash run finish";
+//        INFO_LOG(g_logger) << "can reash run finish";
 
         auto p = cur_co.get();
         cur_co.reset();
@@ -154,10 +163,12 @@ namespace CWJ_CO_NET {
     void Coroutine::YieldToReady() {
 
         INFO_LOG(g_logger) << "Coroutine::YieldToReady()";
-
         auto cur_co = GetThis();
-        if (cur_co == g_thread_main_co) return;
+        auto main_co = GetMainCo(cur_co);
+        if (cur_co == main_co) return;
+
         cur_co->m_state = CoState::READY;
+
         cur_co->back();
     }
 
@@ -177,5 +188,16 @@ namespace CWJ_CO_NET {
 
         }
         INFO_LOG(g_logger) << "Coroutine::~Coroutine() ";
+    }
+
+    void Coroutine::YieldToHold() {
+
+        INFO_LOG(g_logger) << "Coroutine::YieldToReady()";
+
+        auto cur_co = GetThis();
+        if (cur_co == g_thread_main_co) return;
+        cur_co->m_state = CoState::HOLD;
+        cur_co->back();
+
     }
 }

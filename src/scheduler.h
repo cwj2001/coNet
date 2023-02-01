@@ -14,6 +14,7 @@
 
 #include "thread.h"
 #include "coroutine.h"
+#include "log.h"
 
 namespace CWJ_CO_NET {
     class Scheduler : public std::enable_shared_from_this<Scheduler> {
@@ -31,12 +32,14 @@ namespace CWJ_CO_NET {
 
         virtual void idle() = 0;
 
+        void stop();
+
         void start();
 
         template<typename T>
         void schedule(const T & t,int thread_id){
             CoOrFunc task(t,thread_id);
-            if(t.m_co || t.m_cb){
+            if(task.m_co || task.m_cb){
                 {
                     MutexType::Lock lock(m_mutex);
                     m_tasks.push_back(task);
@@ -96,11 +99,13 @@ namespace CWJ_CO_NET {
         std::atomic<size_t> m_active_thread_count{0};
         std::atomic<size_t> m_idle_thread_count{0};
 
-        bool m_stopping = false;
+
         // 是否将当前线程也设置为调度线程
         bool m_use_cur_thread = false;
 
         MutexType m_mutex;
+    protected:
+        std::atomic<bool> m_stopping{false};
     };
 }
 

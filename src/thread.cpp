@@ -22,10 +22,11 @@ namespace CWJ_CO_NET{
                                                 : m_name(mName)
                                                 , m_cb(cb)
                                                 , m_sem(0){
+        INFO_LOG(g_logger)<<" Thread::Thread";
     }
 
     Thread::~Thread() {
-//        WARN_LOG(g_logger)<<"~Thread";
+        INFO_LOG(g_logger)<<"Thread::~Thread()";
         if(m_thread) {
             pthread_detach(m_thread);
             m_thread = 0;
@@ -88,10 +89,13 @@ namespace CWJ_CO_NET{
     void Thread::start() {
         // 要注意传入的this的生命周期，如果不确定，就用智能指针
         Thread::ptr self = shared_from_this();
-        if(pthread_create(&m_thread, nullptr,run,&self)){
+        pthread_t t;
+        if(pthread_create(&t, nullptr,run,&self)){
             ERROR_LOG(g_logger)<<"pthread : "<<m_name<<" create fail";
             throw std::logic_error("pthread_create error");
         }
+
+        m_thread = t;
 
         // 这里用信号量的原因，就是为了保证在pthread 的run 初始化好之前，保证Thread仍然存在
         m_sem.wait();

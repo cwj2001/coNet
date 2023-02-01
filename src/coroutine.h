@@ -60,6 +60,7 @@ namespace CWJ_CO_NET {
         static size_t GetId();
 
         static void YieldToReady();
+        static void YieldToHold();
 
     private:
 
@@ -79,6 +80,9 @@ namespace CWJ_CO_NET {
 
         bool m_use_scheduler;
 
+        void swapCoroutine(const Coroutine::ptr &co);
+
+        static  Coroutine::ptr GetMainCo(Coroutine::ptr);
     };
 
 }
