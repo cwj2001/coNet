@@ -25,33 +25,33 @@
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
-      LogEvent(                                                             \
+      CWJ_CO_NET::LogEvent(                                                             \
             __FILE__,__LINE__,                                              \
-            Thread::GetPId(),Coroutine::GetId(),                            \
+            CWJ_CO_NET::Thread::GetPId(),CWJ_CO_NET::Coroutine::GetId(),                            \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
-            Thread::GetName(),level,logger).getMSs()
+            CWJ_CO_NET::Thread::GetName(),level,logger).getMSs()
 
 #define DEBUG_LOG(logger) \
-        CO_NET_LOG(logger,LogLevel::DEBUG)
+        CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::DEBUG)
 
 #define INFO_LOG(logger) \
-        CO_NET_LOG(logger,LogLevel::INFO)
+        CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::INFO)
 
 #define WARN_LOG(logger) \
-        CO_NET_LOG(logger,LogLevel::WARN)
+        CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::WARN)
 
 #define ERROR_LOG(logger) \
-        CO_NET_LOG(logger,LogLevel::ERROR)
+        CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::ERROR)
 
 #define FATAL_LOG(logger) \
-        CO_NET_LOG(logger,LogLevel::FATAL)
+        CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::FATAL)
 
 #define GET_LOGGER(name) \
-        SingleLoggerMgr::GetInstance()->getLogger(name)
+        CWJ_CO_NET::SingleLoggerMgr::GetInstance()->getLogger(name)
 
 #define GET_ROOT_LOGGER() \
-    SingleLoggerMgr::GetInstance()->getMRootLogger()
+    CWJ_CO_NET::SingleLoggerMgr::GetInstance()->getMRootLogger()
 
 
     class Logger;
