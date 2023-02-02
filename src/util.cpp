@@ -113,7 +113,8 @@ namespace CWJ_CO_NET{
             ss<<prefix<<" ["<<std::setw(2)<<std::setfill('0')<<i<<"] "<<list[i]<<suffix;
         }
         return ss.str();
-    };
+    }
+
 
 }
 

@@ -145,7 +145,7 @@ namespace CWJ_CO_NET {
 
     class UnixAddress : public Address{
     public:
-        using ptr = std::shared_ptr<Address>;
+        using ptr = std::shared_ptr<UnixAddress>;
 
         UnixAddress();
 
@@ -158,6 +158,10 @@ namespace CWJ_CO_NET {
         socklen_t getAddrLen() const override;
 
         std::string toString() const override;
+
+        const std::string getPath() const;
+
+        void setMLen(socklen_t mLen);
 
     public:
 
@@ -172,7 +176,7 @@ namespace CWJ_CO_NET {
     class UnknownAddress : public Address {
     public:
         typedef std::shared_ptr<UnknownAddress> ptr;
-        UnknownAddress(int family);
+        UnknownAddress(int family = AF_INET);
         UnknownAddress(const sockaddr& addr);
         const sockaddr* getAddr() const override;
         sockaddr* getAddr() override;

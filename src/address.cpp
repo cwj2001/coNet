@@ -15,7 +15,6 @@
 
 #include "address.h"
 #include "log.h"
-
 namespace CWJ_CO_NET{
 
     static auto g_logger = GET_LOGGER("system");
@@ -48,6 +47,7 @@ namespace CWJ_CO_NET{
         Address::ptr res ;
         switch (addr->sa_family) {
             case AF_INET:
+                INFO_LOG(g_logger)<<ntohs(((sockaddr_in*)addr)->sin_port);
                 res.reset(new IPv4Address(*(const sockaddr_in*)addr));
                 break;
             case AF_INET6:
@@ -328,6 +328,22 @@ namespace CWJ_CO_NET{
 
     UnixAddress::ptr UnixAddress::Create(const std::string &path) {
         return std::make_shared<UnixAddress>(path);
+    }
+
+    const std::string UnixAddress::getPath() const {
+        std::stringstream ss;
+        if(m_len > offsetof(sockaddr_un, sun_path)
+           && m_addr.sun_path[0] == '\0') {
+            ss << "\\0" << std::string(m_addr.sun_path + 1,
+                                       m_len - offsetof(sockaddr_un, sun_path) - 1);
+        } else {
+            ss << m_addr.sun_path;
+        }
+        return ss.str();
+    }
+
+    void UnixAddress::setMLen(socklen_t mLen) {
+        m_len = mLen;
     }
 
     UnknownAddress::UnknownAddress(int family) {
