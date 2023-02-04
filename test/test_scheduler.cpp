@@ -11,6 +11,7 @@
 #include "scheduler.h"
 #include "thread.h"
 #include "log.h"
+#include "noncopyable.h"
 
 using namespace std;
 using namespace CWJ_CO_NET;
@@ -31,7 +32,11 @@ public:
 
     void idle() override {
         unique_lock<mutex> lock(m_sss);
-        m_con.wait(lock);
+        m_con.wait_for(lock,std::chrono::seconds(2));
+        if(!this->getTaskCount()) {
+            INFO_LOG(g_logger)<<"--=-=-=-=";
+            m_auto_stop = true;
+        }
     }
 
 private:
@@ -50,17 +55,14 @@ static void run() {
 int main() {
 
 
-    Scheduler::ptr sc(new TaskScheduler(10, false, "scheduler"));
-
-    sc->start();
-
-    for (int i = 0; i < 100; i++) {
-        sc->schedule(run, -1);
+    {
+        Scheduler::ptr sc (new TaskScheduler(3, false, "scheduler1"));
+        for (int i = 0; i < 200; i++) {
+            sc->schedule(run, -1);
+        }
+        sc->start();
+        sc->stop();
     }
-    sc->stop();
-
-    INFO_LOG(g_logger) << " main end";
-
     return 0;
 }
 

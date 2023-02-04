@@ -5,12 +5,16 @@
 #include <sys/types.h>          /* See NOTES */
 #include <sys/socket.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 
 #include <sstream>
 
 
 #include "socket.h"
 #include "log.h"
+#include "macro.h"
 
 namespace CWJ_CO_NET{
 
@@ -427,11 +431,22 @@ namespace CWJ_CO_NET{
         if(m_local_addr) {
             ss << " local_address=" << m_local_addr->toString();
         }
-        if(m_local_addr) {
+        if(m_remote_addr) {
             ss << " remote_address=" << m_remote_addr->toString();
         }
         ss << "]";
         return ss.str();
+    }
+
+    void Socket::setNonBlock() {
+
+        int flags=fcntl(m_sock,F_GETFL,0);
+        flags |=O_NONBLOCK;
+
+        if(fcntl(m_sock,F_SETFL,flags)){
+            CWJ_ASSERT(false);
+        }
+
     }
 
     std::ostream& operator<<(std::ostream& os,const Socket& sock){

@@ -34,6 +34,7 @@ namespace CWJ_CO_NET {
             assert(false);
         }
         g_co_count++;
+//        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
     }
 
     Coroutine::Coroutine(Coroutine::CallBack cb, size_t stack_size, bool use_scheduler) : m_use_scheduler(
@@ -62,7 +63,7 @@ namespace CWJ_CO_NET {
 
         g_co_count++;
 
-//        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
+        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
 
     }
 
@@ -72,18 +73,15 @@ namespace CWJ_CO_NET {
         if (m_state == CoState::TERM || m_state == CoState::EXCEPT) return;
         if (g_thread_cur_co == shared_from_this()) return;
 
-//        INFO_LOG(g_logger) << "Coroutine::call ";
         g_thread_cur_co = this->shared_from_this();
         m_state = CoState::EXEC;
 
         if (m_use_scheduler) {
-
             auto co = Scheduler::GetScheduleCo();
             CWJ_ASSERT(co);
             if (swapcontext(&co->m_ctx, &m_ctx)) {
                 CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
             }
-
         } else {
 
             CWJ_ASSERT(g_thread_main_co);
@@ -101,6 +99,7 @@ namespace CWJ_CO_NET {
     }
 
     Coroutine::ptr Coroutine::GetMainCo(Coroutine::ptr co) {
+
         if(co->m_use_scheduler){
             return Scheduler::GetScheduleCo();
         }else {
@@ -136,19 +135,20 @@ namespace CWJ_CO_NET {
         CWJ_ASSERT(cur_co);
 
         try {
+            INFO_LOG(g_logger) << "m_cb start";
             cur_co->m_cb();
-//            INFO_LOG(g_logger) << "m_cb finish";
+            INFO_LOG(g_logger) << "m_cb finish";
             cur_co->m_state = CoState::TERM;
         } catch (std::exception &e) {
             cur_co->m_state = CoState::EXCEPT;
             ERROR_LOG(g_logger) << "Coroutine::run() fail" << BacktraceToStr();
         }
 
-//        INFO_LOG(g_logger) << "can reash run finish";
+        INFO_LOG(g_logger) << "can reash run finish";
 
         auto p = cur_co.get();
         cur_co.reset();
-
+//        CWJ_ASSERT(false);
         p->back();
 
         CWJ_ASSERT_MGS(false, "cannot reach here id :" + std::to_string(GetId()));
@@ -162,7 +162,7 @@ namespace CWJ_CO_NET {
 
     void Coroutine::YieldToReady() {
 
-        INFO_LOG(g_logger) << "Coroutine::YieldToReady()";
+        DEBUG_LOG(g_logger) << "Coroutine::YieldToReady()";
         auto cur_co = GetThis();
         auto main_co = GetMainCo(cur_co);
         if (cur_co == main_co) return;
@@ -178,8 +178,9 @@ namespace CWJ_CO_NET {
 
     Coroutine::~Coroutine() {
 
+        CWJ_ASSERT(m_use_scheduler);
         if (m_stack) {
-
+            INFO_LOG(g_logger)<<m_state;
             CWJ_ASSERT(m_state == CoState::EXCEPT || m_state == CoState::TERM || m_state == CoState::INIT);
             Allocator::Dealloc(m_stack, m_stack_size);
         } else {
@@ -199,5 +200,13 @@ namespace CWJ_CO_NET {
         cur_co->m_state = CoState::HOLD;
         cur_co->back();
 
+    }
+
+    CoState::State Coroutine::getMState() const {
+        return m_state;
+    }
+
+    void Coroutine::setMState(CoState::State mState) {
+        m_state = mState;
     }
 }

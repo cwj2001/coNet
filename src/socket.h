@@ -92,6 +92,10 @@ namespace CWJ_CO_NET {
 
         const std::string toString() const ;
 
+        const int getSocket() const {return m_sock;};
+
+        void setNonBlock();
+
     private:
 
         bool newSocket();

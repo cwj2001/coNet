@@ -39,9 +39,9 @@ namespace CWJ_CO_NET {
         // 原因目前未知
 //        Coroutine::ptr idle_co(new Coroutine(std::bind(&Scheduler::idle,this),0,true));
 
-
         CoOrFunc task;
         while (true) {
+            INFO_LOG(g_logger) << "schduler";
             bool is_wake = false;
             bool has_task = false;
             ERROR_LOG(g_logger)<<"total:"<<m_tasks.size();
@@ -64,7 +64,9 @@ namespace CWJ_CO_NET {
                         continue;
                     }
                     //TODO 判断这是否有存在的必要
-                    if (itr->m_co && itr->m_co->m_state == CoState::HOLD) continue;
+                    if (itr->m_co && itr->m_co->m_state == CoState::HOLD) {
+                        continue;
+                    }
                     task = *itr;
                     m_tasks.erase(itr++);
                     m_active_thread_count++;
@@ -76,7 +78,6 @@ namespace CWJ_CO_NET {
             if (is_wake || m_tasks.size()) {
                 wake();
             }
-
             if (has_task) {
                 if (!task.m_co && task.m_cb) {
                     task.m_co.reset(new Coroutine(task.m_cb, 0, true));
@@ -87,38 +88,35 @@ namespace CWJ_CO_NET {
                 }
                 --m_active_thread_count;
                 task.reset();
-            } else if (m_stopping) {
+            } else if (m_stopping || m_auto_stop) {
                 break;
             } else {
                 ++m_idle_thread_count;
-//                idle_co->call();
                 idle();
                 --m_idle_thread_count;
-//                if(idle_co->m_state == CoState::TERM ){
-//                    WARN_LOG(g_logger)<<"idle_co TERM";
-//                    break;
-//                }else if( idle_co->m_state == CoState::EXCEPT){
-//                    ERROR_LOG(g_logger)<<"idle_co EXCEPT";
-//                    break;
-//                }
-//                CWJ_ASSERT(false);
             }
 
         }
-
-        INFO_LOG(g_logger) << "schedule run func finish";
     }
 
     void Scheduler::start() {
+        // 锁加双层判断
+        {
+            if (m_started) return;
+            MutexType::Lock lock(m_mutex);
+            if (m_started) return;
+            m_started = true;
+        }
         m_threads.reserve(m_thread_count);
         for (int i = 0; i < m_thread_count; ++i) {
+            // 注意： shared_from_this不能在构造函数被调用，因为此时还没置值
             m_threads.emplace_back(
                     new Thread("thread_" + std::to_string(i), std::bind(&Scheduler::run, shared_from_this())));
             m_threads.back()->start();
         }
         if (m_use_cur_thread) {
             g_scheduler = shared_from_this();
-            g_scheduler_co.reset(new Coroutine(std::bind(&Scheduler::run, shared_from_this()), 0, true));
+            g_scheduler_co.reset(new Coroutine(std::bind(&Scheduler::run, shared_from_this()), 0, false));
             g_scheduler_co->call();
         }
         ERROR_LOG(g_logger) << " void Scheduler::start()";
@@ -133,27 +131,33 @@ namespace CWJ_CO_NET {
     }
 
     void Scheduler::stop() {
-
-        m_stopping = true;
-
-        for (int i = 0; i < m_thread_count; i++) {
-            wake();
-//            INFO_LOG(g_logger)<<"==========";
-        }
-
-        if (m_use_cur_thread) wake();
-
+        if(m_stopping)  return ;
         std::vector<Thread::ptr> list;
         {
             MutexType::Lock lock(m_mutex);
+            if(m_stopping)  return ;
+            m_stopping = true;
             list.swap(m_threads);
         }
+        wakeAllThread();
         // 保证在schedule::stop函数执行后，其一定处于无任务，无线程状态
         for (auto a : list) {
             a->join();
         }
 
 
+    }
+
+    void Scheduler::wakeAllThread() {
+        for (int i = 0; i < m_thread_count; i++) {
+            wake();
+        }
+        if (m_use_cur_thread) wake();
+    }
+
+    size_t Scheduler::getTaskCount() {
+        MutexType::Lock lock(m_mutex);
+        return m_tasks.size();
     }
 
     Scheduler::CoOrFunc::CoOrFunc(const Coroutine::ptr &mCo, int mThreadId) : m_co(mCo), m_thread_id(mThreadId) {}

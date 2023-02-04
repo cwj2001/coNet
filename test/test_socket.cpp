@@ -25,7 +25,7 @@ int main(){
     if(sock->bind(addr) && sock->listen(1024)){
         cout<<*sock->getMLocalAddr()<<endl;
         Socket::ptr client = sock->accept();
-        while(client->isConnect() && client->recv(buf, sizeof(buf),0)){
+        while(client->isConnect() && client->recv(buf, sizeof(buf),0)>0){
             string str(buf);
             str = "server:"+str;
             client->send(str.c_str(),str.size(),0);

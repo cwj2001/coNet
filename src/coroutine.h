@@ -47,6 +47,9 @@ namespace CWJ_CO_NET {
 
         size_t getMId() const;
 
+        CoState::State getMState() const;
+
+        void setMState(CoState::State mState);
 
 
     private:
