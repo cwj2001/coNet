@@ -30,6 +30,7 @@ add_executable(test_mutex test_mutex.cpp ${SRC_LIST})
 add_executable(test_scheduler test_scheduler.cpp ${SRC_LIST})
 add_executable(test_socket test_socket.cpp ${SRC_LIST})
 add_executable(test_thread test_thread.cpp ${SRC_LIST})
+add_executable(test_timer test_timer.cpp ${SRC_LIST})
 
 
 #target_link_libraries( test_config ${yaml-cpp_LIBS} )
@@ -45,3 +46,4 @@ target_link_libraries( test_mutex -lpthread -lyaml-cpp)
 target_link_libraries( test_scheduler -lpthread -lyaml-cpp)
 target_link_libraries( test_socket -lpthread -lyaml-cpp)
 target_link_libraries( test_thread -lpthread -lyaml-cpp)
+target_link_libraries( test_timer -lpthread -lyaml-cpp)

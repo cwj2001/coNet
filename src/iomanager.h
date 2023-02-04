@@ -15,14 +15,16 @@
 #include "scheduler.h"
 #include "mutex.h"
 #include "coroutine.h"
+#include "timer.h"
 
 
 namespace CWJ_CO_NET {
 
-    class IOManager : public Scheduler {
+    class IOManager : public Scheduler , public TimerManager{
     public:
         using ptr = std::shared_ptr<IOManager>;
         using MutexType = RWMutex;
+        using CallBack = Scheduler::CallBack;
 
         enum EventType {
             NONE = 0,
@@ -76,6 +78,10 @@ namespace CWJ_CO_NET {
     public:
 
         static IOManager::ptr GetThis();
+
+    protected:
+
+        void onTimerInsertedAtFront() override;
 
 
     private:

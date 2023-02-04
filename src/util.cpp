@@ -115,6 +115,11 @@ namespace CWJ_CO_NET{
         return ss.str();
     }
 
+    uint64_t GetCurrentMs() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>           \
+            (std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
 
 }
 

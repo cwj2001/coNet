@@ -41,10 +41,9 @@ namespace CWJ_CO_NET {
 
         CoOrFunc task;
         while (true) {
-            INFO_LOG(g_logger) << "schduler";
             bool is_wake = false;
             bool has_task = false;
-            ERROR_LOG(g_logger)<<"total:"<<m_tasks.size();
+            INFO_LOG(g_logger)<<"total:"<<m_tasks.size();
             {
                 MutexType::Lock lock(m_mutex);
 //                CWJ_ASSERT(false);

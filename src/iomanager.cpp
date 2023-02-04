@@ -34,9 +34,24 @@ namespace CWJ_CO_NET {
         do {
             int len = 0;
             do {
-                len = epoll_wait(m_epoll_fd, events.get(), MAX_EVENTS, -1);
-                if (!(len < 0 && EINTR)) break;
+                static uint64_t  MAX_TIMEOUT = 3000ul;
+                uint64_t ms = getNextTimer();
+                ms = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
+                INFO_LOG(g_logger)<<"ms:"<<ms;
+                len = epoll_wait(m_epoll_fd, events.get(), MAX_EVENTS, ms);
+                if (len >0 || (len == 0 && EFAULT)) break;
+                else{
+                    ERROR_LOG(g_logger) << "epoll_wait error ,errno="<<errno<<" strerror="<<strerror(errno);
+                }
             } while (true);
+
+
+            std::vector<TimerManager::CallBack>list;
+            listExpiredCb(list);
+            for(auto a : list){
+                schedule(a,-1);
+            }
+
 
             auto evs = events.get();
             for (int i = 0; i < len; i++) {
@@ -45,13 +60,14 @@ namespace CWJ_CO_NET {
                     read(m_wakeup_fd, &u, sizeof(u));
                     continue;
                 }
-
                 epoll_event &event = evs[i];
                 auto fd_context = (FdContext *) evs[i].data.ptr;
 
                 int real_event = ((EPOLLIN | EPOLLOUT) & event.events) & fd_context->m_types;
 
                 if (real_event == NONE) continue;
+
+
 
                 fd_context->m_types = (EventType) (fd_context->m_types & ~(real_event));
                 event.events = fd_context->m_types | EPOLLET;
@@ -278,6 +294,10 @@ namespace CWJ_CO_NET {
 
     IOManager::ptr IOManager::GetThis() {
         return std::dynamic_pointer_cast<IOManager>(Scheduler::GetThis());
+    }
+
+    void IOManager::onTimerInsertedAtFront() {
+        wake();
     }
 
 

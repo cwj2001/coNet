@@ -72,12 +72,15 @@ namespace CWJ_CO_NET{
         void lock(){
             if(!m_isLock){
                 m_mutex.rdlock();
+                m_isLock = true;
             }
         }
 
         void unlock(){
-            if(m_isLock)
-            m_mutex.unlock();
+            if(m_isLock) {
+                m_mutex.unlock();
+                m_isLock = false;
+            }
         }
 
     private:
@@ -101,12 +104,15 @@ namespace CWJ_CO_NET{
         void lock(){
             if(!m_isLock){
                 m_mutex.wrlock();
+                m_isLock = true;
             }
         }
 
         void unlock(){
-            if(m_isLock)
+            if(m_isLock) {
                 m_mutex.unlock();
+                m_isLock = false;
+            }
         }
 
     private:

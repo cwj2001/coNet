@@ -32,6 +32,7 @@ namespace CWJ_CO_NET{
 
     std::string BacktraceToStr(int size = 256,int skip = 0,const std::string& prefix = "",const std::string& suffix = "\n");
 
+    uint64_t GetCurrentMs();
 
 }
 
