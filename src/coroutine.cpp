@@ -178,7 +178,7 @@ namespace CWJ_CO_NET {
 
     Coroutine::~Coroutine() {
 
-        CWJ_ASSERT(m_use_scheduler);
+//        CWJ_ASSERT(m_use_scheduler);
         if (m_stack) {
             INFO_LOG(g_logger)<<m_state;
             CWJ_ASSERT(m_state == CoState::EXCEPT || m_state == CoState::TERM || m_state == CoState::INIT);

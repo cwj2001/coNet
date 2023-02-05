@@ -26,6 +26,8 @@ namespace CWJ_CO_NET {
 
     void Scheduler::run() {
 
+        beforeRunScheduler();
+
         INFO_LOG(g_logger) << "schedule run func start ";
 
         g_scheduler = this->shared_from_this();
@@ -37,7 +39,7 @@ namespace CWJ_CO_NET {
 
         // TODO 注意：如果idle用一个协程来跑，然后再使用C++11条件变量来进行wait阻塞，那么会导致其无法被notify唤醒，
         // 原因目前未知
-//        Coroutine::ptr idle_co(new Coroutine(std::bind(&Scheduler::idle,this),0,true));
+        // Coroutine::ptr idle_co(new Coroutine(std::bind(&Scheduler::idle,this),0,true));
 
         CoOrFunc task;
         while (true) {
@@ -46,8 +48,8 @@ namespace CWJ_CO_NET {
             INFO_LOG(g_logger)<<"total:"<<m_tasks.size();
             {
                 MutexType::Lock lock(m_mutex);
-//                CWJ_ASSERT(false);
                 if (m_stopping && m_tasks.empty()) break;
+
                 for (auto itr = m_tasks.begin(); itr != m_tasks.end();) {
                     CWJ_ASSERT(itr->m_co || itr->m_cb);
                     if (itr->m_thread_id != -1 && itr->m_thread_id != Thread::GetPId()) {
@@ -65,8 +67,8 @@ namespace CWJ_CO_NET {
                     }
                     //TODO 判断这是否有存在的必要
                     if (itr->m_co && itr->m_co->m_state == CoState::HOLD) {
-//                        ++itr;
-//                        continue;
+                    //     ++itr;
+                    //     continue;
                     }
                     task = *itr;
                     m_tasks.erase(itr++);
@@ -100,6 +102,10 @@ namespace CWJ_CO_NET {
             }
 
         }
+
+        afterRunScheduler();
+        INFO_LOG(g_logger) << "scheduler run end";
+
     }
 
     void Scheduler::start() {
@@ -114,7 +120,7 @@ namespace CWJ_CO_NET {
         for (int i = 0; i < m_thread_count; ++i) {
             // 注意： shared_from_this不能在构造函数被调用，因为此时还没置值
             m_threads.emplace_back(
-                    new Thread("thread_" + std::to_string(i), std::bind(&Scheduler::run, shared_from_this())));
+                    new Thread(m_name+".thread_" + std::to_string(i), std::bind(&Scheduler::run, shared_from_this())));
             m_threads.back()->start();
         }
         if (m_use_cur_thread) {
@@ -136,7 +142,6 @@ namespace CWJ_CO_NET {
     void Scheduler::stop() {
 
         INFO_LOG(g_logger) << "scheduler stop";
-
         if(m_stopping)  return ;
         std::vector<Thread::ptr> list;
         {
@@ -150,8 +155,6 @@ namespace CWJ_CO_NET {
         for (auto a : list) {
             a->join();
         }
-
-
     }
 
     void Scheduler::wakeAllThread() {
@@ -169,6 +172,10 @@ namespace CWJ_CO_NET {
     void Scheduler::auto_stop() {
         m_auto_stop = true;
         wakeAllThread();
+    }
+
+    bool Scheduler::isStop() {
+        return m_auto_stop || m_stopping;
     }
 
     Scheduler::CoOrFunc::CoOrFunc(const Coroutine::ptr &mCo, int mThreadId) : m_co(mCo), m_thread_id(mThreadId) {}

@@ -11,9 +11,11 @@
 #include "iomanager.h"
 #include "macro.h"
 #include "socket.h"
-
+#include "log.h"
 using namespace std;
 using namespace CWJ_CO_NET;
+
+static auto g_logger = GET_ROOT_LOGGER();
 
 void run(){
     SetHookEnable(true);
@@ -21,7 +23,10 @@ void run(){
     if(server && server->bind(IPv4Address::Create("0.0.0.0",8033)) && server->listen(1024)) {
         while (true) {
             auto client = server->accept();
-            if(!client) CWJ_ASSERT(false);
+            if(!client) {
+                INFO_LOG(g_logger) << "quit server";
+                break;
+            }
             IOManager::GetThis()->schedule([client](){
                 ERROR_LOG(GET_ROOT_LOGGER()) << "client:"<<*client<<" connect ";
                 static char buf[10];
@@ -39,6 +44,9 @@ void run(){
         }
     }
 
+    INFO_LOG(g_logger)<<"quit run";
+    IOManager::GetThis()->auto_stop();
+
 }
 
 int main(){
@@ -46,6 +54,7 @@ int main(){
     IOManager::ptr ioManager(new IOManager(1,true,"tttt"));
     ioManager->schedule(run,-1);
     ioManager->start();
+    ioManager->stop();
     return 0;
 }
 

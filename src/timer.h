@@ -17,6 +17,21 @@ namespace CWJ_CO_NET {
 
     class TimerManager;
 
+    class ConditionInfo : NonCopyAble{
+    public:
+        using MutexType = Mutex;
+
+        ConditionInfo(bool mIsCancel = false);
+
+        bool isMIsCancel();
+
+        void setMIsCancel(bool mIsCancel);
+
+    private:
+        bool m_is_cancel;
+        MutexType m_mutex;
+    };
+
     class Timer : public std::enable_shared_from_this<Timer> {
     public:
         using ptr = std::shared_ptr<Timer>;

@@ -10,6 +10,7 @@
 
 
 #include "log.h"
+#include "hook.h"
 
 namespace CWJ_CO_NET {
 
@@ -44,7 +45,6 @@ namespace CWJ_CO_NET {
                     ERROR_LOG(g_logger) << "epoll_wait error ,errno="<<errno<<" strerror="<<strerror(errno);
                 }
             } while (true);
-
 
             std::vector<TimerManager::CallBack>list;
             listExpiredCb(list);
@@ -96,7 +96,8 @@ namespace CWJ_CO_NET {
                 if (fd_context->m_types == NONE) fd_context->reset();
 
             }
-        }while(getTaskCount()<=0);
+        }while(getTaskCount()<=0 && !isStop());
+
 
     }
 
@@ -155,7 +156,6 @@ namespace CWJ_CO_NET {
                                 << " strerror= " << strerror(errno);
             return false;
         }
-
 
         fd_ctx->m_types = EventType(fd_ctx->m_types | event_type);
         fd_ctx->m_fd = fd;
@@ -289,6 +289,7 @@ namespace CWJ_CO_NET {
         if (fd_ctx->triggerEvent(WRITE)) {
             --m_pending_event_count;
         }
+
         return true;
     }
 
@@ -298,6 +299,14 @@ namespace CWJ_CO_NET {
 
     void IOManager::onTimerInsertedAtFront() {
         wake();
+    }
+
+    const std::atomic<size_t> &IOManager::getMPendingEventCount() const {
+        return m_pending_event_count;
+    }
+
+    void IOManager::beforeRunScheduler() {
+        SetHookEnable(true);
     }
 
 

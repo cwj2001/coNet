@@ -156,5 +156,16 @@ namespace CWJ_CO_NET {
         return m_timers.size();
     }
 
+    ConditionInfo::ConditionInfo(bool mIsCancel) : m_is_cancel(mIsCancel) {}
+
+    bool ConditionInfo::isMIsCancel() {
+        MutexType::Lock lock(m_mutex);
+        return m_is_cancel;
+    }
+
+    void ConditionInfo::setMIsCancel(bool mIsCancel) {
+        MutexType::Lock lock(m_mutex);
+        m_is_cancel = mIsCancel;
+    }
 }
 

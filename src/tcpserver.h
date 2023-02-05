@@ -1,0 +1,59 @@
+//
+// Created by 抑~风 on 2023/2/5.
+//
+
+#ifndef CWJ_CO_NET_TCPSERVER_H
+#define CWJ_CO_NET_TCPSERVER_H
+
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+
+#include "iomanager.h"
+#include "address.h"
+#include "socket.h"
+#include "mutex.h"
+
+namespace CWJ_CO_NET {
+
+    class TcpServer : public std::enable_shared_from_this<TcpServer> {
+    public:
+        using ptr = std::shared_ptr<TcpServer>;
+        using MutexType = Mutex;
+
+        TcpServer(const std::string &mName, size_t accept_thread_count, size_t io_thread_count, bool accept_shared);
+
+        virtual ~TcpServer() {};
+
+        void bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails);
+
+        bool bind(Address::ptr addr);
+
+        void start();
+
+        void stop();
+
+    protected:
+
+        virtual void handleClient(Socket::ptr sock);
+
+        virtual void handleAccept(Socket::ptr sock);
+
+    private:
+        const std::string m_name;
+        IOManager::ptr m_io_iom;
+        IOManager::ptr m_accept_iom;
+        // 还差一个专门处理耗时任务的线程池
+        std::vector<Socket::ptr> m_accept_fds;
+
+        std::atomic<bool> m_accept_shared{false};
+        std::atomic<bool> m_stopping{true};
+        std::atomic<bool>m_only_accept{true};
+
+        MutexType m_mutex;
+    };
+
+}
+
+#endif //CWJ_CO_NET_TCPSERVER_H

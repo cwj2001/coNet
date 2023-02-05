@@ -33,7 +33,7 @@ namespace CWJ_CO_NET {
 
         bool bind(const Address::ptr addr);
 
-        bool listen(int backlog);
+        bool listen(int backlog = 1024);
 
         Socket::ptr accept();
 
@@ -95,6 +95,15 @@ namespace CWJ_CO_NET {
         const int getSocket() const {return m_sock;};
 
         void setNonBlock();
+
+        int64_t getSendTimeout();
+
+        void setSendTimeout(int64_t v);
+
+        int64_t getRecvTimeout();
+
+        void setRecvTimeout(int64_t v);
+
 
     private:
 

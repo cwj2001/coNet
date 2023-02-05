@@ -46,9 +46,11 @@ namespace CWJ_CO_NET {
 
         void stop();
 
+        bool isStop();
+
         void auto_stop();
 
-        void start();
+        virtual void start();
 
         size_t getTaskCount();
 
@@ -77,6 +79,11 @@ namespace CWJ_CO_NET {
             }
             if(is_wake)     wake();
         }
+
+    protected:
+
+        virtual void beforeRunScheduler(){};
+        virtual void afterRunScheduler(){};
 
     private:
 

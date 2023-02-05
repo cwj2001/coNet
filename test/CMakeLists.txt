@@ -21,7 +21,7 @@ set(LIB_LIST "-lyaml-cpp -lpthread -ldl")
 
 MESSAGE(${LIB_LIST})
 
-add_executable(test_template test_template.cpp)
+
 
 add_executable(main main.cpp ${SRC_LIST})
 add_executable(test_address test_address.cpp ${SRC_LIST})
@@ -35,6 +35,8 @@ add_executable(test_marco test_marco.cpp ${SRC_LIST})
 add_executable(test_mutex test_mutex.cpp ${SRC_LIST})
 add_executable(test_scheduler test_scheduler.cpp ${SRC_LIST})
 add_executable(test_socket test_socket.cpp ${SRC_LIST})
+add_executable(test_tcpserver test_tcpserver.cpp ${SRC_LIST})
+add_executable(test_template ${SRC_LIST})
 add_executable(test_thread test_thread.cpp ${SRC_LIST})
 add_executable(test_timer test_timer.cpp ${SRC_LIST})
 
@@ -53,5 +55,6 @@ target_link_libraries( test_marco ${LIB_LIST})
 target_link_libraries( test_mutex ${LIB_LIST})
 target_link_libraries( test_scheduler ${LIB_LIST})
 target_link_libraries( test_socket ${LIB_LIST})
+target_link_libraries( test_tcpserver ${LIB_LIST})
 target_link_libraries( test_thread ${LIB_LIST})
 target_link_libraries( test_timer ${LIB_LIST})

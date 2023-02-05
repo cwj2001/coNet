@@ -15,6 +15,7 @@
 #include "socket.h"
 #include "log.h"
 #include "macro.h"
+#include "fdmanager.h"
 
 namespace CWJ_CO_NET{
 
@@ -179,6 +180,7 @@ namespace CWJ_CO_NET{
             return nullptr;
         }
         if(sock->init(newsock,true)){
+            sock->setNonBlock();
             return sock;
         }
         return nullptr;
@@ -447,6 +449,34 @@ namespace CWJ_CO_NET{
             CWJ_ASSERT(false);
         }
 
+        auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
+        fd_ctx->setMIsNonblock(true);
+    }
+
+    int64_t Socket::getSendTimeout() {
+        auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
+        return fd_ctx->getTimeout(FdCtx::SNDTIMEO);
+    }
+
+    void Socket::setSendTimeout(int64_t v) {
+        auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
+        fd_ctx->setTimeout(FdCtx::SNDTIMEO,v);
+
+        struct timeval tv{int(v / 1000), int(v % 1000 * 1000)};
+        setOption(SOL_SOCKET, SO_SNDTIMEO, &tv,sizeof(tv));
+    }
+
+    int64_t Socket::getRecvTimeout() {
+        auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
+        return fd_ctx->getTimeout(FdCtx::RCVTIMEO);
+    }
+
+    void Socket::setRecvTimeout(int64_t v) {
+        auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
+        fd_ctx->setTimeout(FdCtx::SNDTIMEO,v);
+
+        struct timeval tv{int(v / 1000), int(v % 1000 * 1000)};
+        setOption(SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv));
     }
 
     std::ostream& operator<<(std::ostream& os,const Socket& sock){

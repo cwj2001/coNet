@@ -63,6 +63,7 @@ namespace CWJ_CO_NET {
 
         ~IOManager();
 
+
         void wake() override;
 
         void idle() override;
@@ -74,6 +75,10 @@ namespace CWJ_CO_NET {
         bool cancelEvent(int fd, EventType event);
 
         bool cancelAll(int fd);
+
+        const std::atomic<size_t> &getMPendingEventCount() const;
+
+        void beforeRunScheduler() override;
 
     public:
 

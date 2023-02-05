@@ -8,7 +8,7 @@
 #include <inttypes.h>
 #include <unordered_map>
 #include <memory>
-
+#include <atomic>
 #include "mutex.h"
 #include "singleton.h"
 
@@ -56,6 +56,7 @@ namespace CWJ_CO_NET{
         bool m_close{false};
         uint64_t m_recv_timeout{(uint64_t)-1};
         uint64_t m_send_timeout{(uint64_t)-1};
+
     };
 
     class FdManager{
