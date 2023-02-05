@@ -70,9 +70,9 @@ namespace CWJ_CO_NET {
 
         friend class Timer;
 
-        void addTimer(uint64_t ms, CallBack cb, bool recurring = false);
+        Timer::ptr addTimer(uint64_t ms, CallBack cb, bool recurring = false);
 
-        void addConditionTimer(uint64_t ms, CallBack cb, std::weak_ptr<void> con, bool recurring);
+        Timer::ptr addConditionTimer(uint64_t ms, CallBack cb, std::weak_ptr<void> con, bool recurring);
 
         void addTimerNotLock(Timer::ptr timer);
 

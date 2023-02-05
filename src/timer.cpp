@@ -89,9 +89,11 @@ namespace CWJ_CO_NET {
         m_manager = mManager;
     }
 
-    void TimerManager::addTimer(uint64_t ms, TimerManager::CallBack cb, bool recurring) {
+    Timer::ptr TimerManager::addTimer(uint64_t ms, TimerManager::CallBack cb, bool recurring) {
         MutexType::WLock lock(m_mutex);
-        addTimerNotLock(std::make_shared<Timer>(ms, cb, recurring));
+        auto timer = std::make_shared<Timer>(ms, cb, recurring);
+        addTimerNotLock(timer);
+        return timer;
     }
 
     static void RunConditionCallBack(TimerManager::CallBack cb, std::weak_ptr<void> con) {
@@ -101,9 +103,9 @@ namespace CWJ_CO_NET {
         }
     }
 
-    void
+    Timer::ptr
     TimerManager::addConditionTimer(uint64_t ms, TimerManager::CallBack cb, std::weak_ptr<void> con, bool recurring) {
-        addTimer(ms, std::bind(RunConditionCallBack, std::move(cb), std::move(con)), recurring);
+        return addTimer(ms, std::bind(RunConditionCallBack, std::move(cb), std::move(con)), recurring);
     }
 
     void TimerManager::addTimerNotLock(Timer::ptr timer) {

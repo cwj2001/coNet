@@ -15,6 +15,7 @@
 #include "thread.h"
 #include "coroutine.h"
 #include "log.h"
+#include "macro.h"
 
 namespace CWJ_CO_NET {
 
@@ -44,6 +45,8 @@ namespace CWJ_CO_NET {
         virtual void idle() = 0;
 
         void stop();
+
+        void auto_stop();
 
         void start();
 

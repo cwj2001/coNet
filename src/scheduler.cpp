@@ -60,11 +60,13 @@ namespace CWJ_CO_NET {
                             && (itr->m_co->m_state == CoState::TERM
                                 || itr->m_co->m_state == CoState::EXCEPT))) {
                         m_tasks.erase(itr++);
+                        ++itr;
                         continue;
                     }
                     //TODO 判断这是否有存在的必要
                     if (itr->m_co && itr->m_co->m_state == CoState::HOLD) {
-                        continue;
+//                        ++itr;
+//                        continue;
                     }
                     task = *itr;
                     m_tasks.erase(itr++);
@@ -73,6 +75,8 @@ namespace CWJ_CO_NET {
                     break;
                 }
             }
+
+
 
             if (is_wake || m_tasks.size()) {
                 wake();
@@ -130,6 +134,9 @@ namespace CWJ_CO_NET {
     }
 
     void Scheduler::stop() {
+
+        INFO_LOG(g_logger) << "scheduler stop";
+
         if(m_stopping)  return ;
         std::vector<Thread::ptr> list;
         {
@@ -157,6 +164,11 @@ namespace CWJ_CO_NET {
     size_t Scheduler::getTaskCount() {
         MutexType::Lock lock(m_mutex);
         return m_tasks.size();
+    }
+
+    void Scheduler::auto_stop() {
+        m_auto_stop = true;
+        wakeAllThread();
     }
 
     Scheduler::CoOrFunc::CoOrFunc(const Coroutine::ptr &mCo, int mThreadId) : m_co(mCo), m_thread_id(mThreadId) {}

@@ -56,7 +56,7 @@ int main() {
 
 
     {
-        Scheduler::ptr sc (new TaskScheduler(3, false, "scheduler1"));
+        Scheduler::ptr sc (new TaskScheduler(1, true, "scheduler1"));
         for (int i = 0; i < 200; i++) {
             sc->schedule(run, -1);
         }

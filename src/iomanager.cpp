@@ -34,7 +34,7 @@ namespace CWJ_CO_NET {
         do {
             int len = 0;
             do {
-                static uint64_t  MAX_TIMEOUT = 3000ul;
+                static uint64_t  MAX_TIMEOUT = 30000ul;
                 uint64_t ms = getNextTimer();
                 ms = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
                 INFO_LOG(g_logger)<<"ms:"<<ms;

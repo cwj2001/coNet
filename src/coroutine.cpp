@@ -193,7 +193,7 @@ namespace CWJ_CO_NET {
 
     void Coroutine::YieldToHold() {
 
-        INFO_LOG(g_logger) << "Coroutine::YieldToReady()";
+        INFO_LOG(g_logger) << "Coroutine::YieldToHold()";
 
         auto cur_co = GetThis();
         if (cur_co == g_thread_main_co) return;

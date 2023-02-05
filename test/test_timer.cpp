@@ -18,7 +18,9 @@ static auto g_logger = GET_ROOT_LOGGER();
 void run(){
     IOManager::GetThis()->addTimer(2000,[](){
         INFO_LOG(g_logger) << " test================================= ";
+
     },true);
+
     INFO_LOG(g_logger)<<"--end--";
 }
 
@@ -29,6 +31,7 @@ int main(){
     ioManager->schedule(run,-1);
 
     ioManager->start();
+    ioManager->stop();
 
     return 0;
 }

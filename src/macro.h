@@ -14,7 +14,7 @@ namespace CWJ_CO_NET{
     FATAL_LOG(GET_LOGGER("system"))             \
     << "FALSE_ASSERT :"#x<<std::endl            \
     <<"Backtarce : \n"                          \
-    <<BacktraceToStr(256,0,"","\n");            \
+    <<CWJ_CO_NET::BacktraceToStr(256,0,"","\n");            \
     assert(false);                              \
 }
 
@@ -26,7 +26,7 @@ namespace CWJ_CO_NET{
     << "FALSE_ASSERT :"#x<<std::endl    \
     << w << std::endl                   \
     <<"Backtarce : \n"                  \
-    <<BacktraceToStr(256,0,"","\n");    \
+    <<CWJ_CO_NET::BacktraceToStr(256,0,"","\n");    \
     assert(false);                      \
 }
 
