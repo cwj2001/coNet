@@ -14,6 +14,7 @@
 #include "address.h"
 #include "socket.h"
 #include "mutex.h"
+#include "byteArray.h"
 
 namespace CWJ_CO_NET {
 
@@ -53,6 +54,30 @@ namespace CWJ_CO_NET {
 
         MutexType m_mutex;
     };
+
+
+    class MoreTcpServer : public TcpServer {
+    public:
+        using ptr = std::shared_ptr<MoreTcpServer>;
+        using CallBack = std::function<void()>;
+
+        MoreTcpServer(const std::string &mName, size_t acceptThreadCount, size_t ioThreadCount, bool acceptShared) : TcpServer(
+                mName, acceptThreadCount, ioThreadCount, acceptShared) {}
+
+        virtual void onConnection(Socket::ptr&) = 0;
+
+        virtual void onClose(Socket::ptr&) = 0;
+
+        virtual void onWriteComplete(Socket::ptr&) = 0;
+
+        virtual void onMessage(Socket::ptr& sock,ByteArray::ptr& recv_buffer, ByteArray::ptr& send_buffer) = 0;
+
+        void handleClient(Socket::ptr sock) override;
+
+    private:
+
+    };
+
 
 }
 

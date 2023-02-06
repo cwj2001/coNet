@@ -135,7 +135,9 @@ namespace CWJ_CO_NET {
             if (timer) timer->cancel();
 
             int rt = func(sockfd, std::forward<Args>(args)...);
-
+            while(rt == -1 && errno == EINTR) {
+                rt = func(sockfd, std::forward<Args>(args)...);
+            }
             if (rt >= 0) {
                 return rt;
             } else if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {

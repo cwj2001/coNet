@@ -110,4 +110,43 @@ namespace CWJ_CO_NET {
             , m_only_accept(!io_thread_count){}
 
 
+    void MoreTcpServer::handleClient(Socket::ptr sock) {
+        // 刚连接时的回调
+        onConnection(sock);
+
+        ByteArray::ptr recv_buffer(new ByteArray(1024));
+        ByteArray::ptr send_buffer(new ByteArray(1024));
+
+        int size = 0;
+        std::vector<iovec> recv_ios, send_ios;
+
+        while (sock->isConnect()) {
+
+
+            // 接收报文
+            recv_ios.clear();
+            recv_buffer->getWriteBuffers(recv_ios, 1024,false);
+            if((size = sock->recv(&*recv_ios.begin(), recv_ios.size()))<=0) {
+                break;
+            }
+            recv_buffer->updateNullWrite(size);
+            // 处理报文
+            onMessage(sock,recv_buffer, send_buffer);
+
+            // 发送报文
+            bool is_send = false;
+            while (send_buffer->getMDataSize() > 0) {
+                send_ios.clear();
+                send_buffer->getReadBuffers(send_ios);
+                sock->send(&*send_ios.begin(), send_ios.size());
+                is_send = true;
+            }
+            // 报文发送完成的回调
+            if(is_send) onWriteComplete(sock);
+
+        }
+        // 套接字关闭前的回调
+        onClose(sock);
+        sock->close();
+    }
 }
