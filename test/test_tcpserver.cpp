@@ -47,32 +47,37 @@ public:
 
     MoreTestServer(const string &mName, size_t acceptThreadCount, size_t ioThreadCount, bool acceptShared)
             : MoreTcpServer(mName, acceptThreadCount, ioThreadCount, acceptShared) {
-//        CWJ_ASSERT(false);
     }
 
     void onConnection(Socket::ptr& sock) override {
-        INFO_LOG(g_logger) <<*sock<<"onConnection()" ;
+        INFO_LOG(g_logger) << "onConnection";
+        m_num++;
+        ERROR_LOG(g_logger) << *sock;
+        ERROR_LOG(g_logger) << "m_num="<<m_num;
     }
 
     void onClose(Socket::ptr& sock) override {
-        INFO_LOG(g_logger) <<*sock<<"onClose()" ;
+        INFO_LOG(g_logger) << "onClose";
+        m_num--;
     }
 
     void onWriteComplete(Socket::ptr& sock) override {
-        INFO_LOG(g_logger) <<*sock<<"onWriteComplete()" ;
     }
 
     void onMessage(Socket::ptr& sock,ByteArray::ptr &recv_buffer, ByteArray::ptr &send_buffer) override {
-        INFO_LOG(g_logger) <<"onMessage: "<<recv_buffer->getMDataSize()<<" "<<send_buffer->getMDataSize();
+//        INFO_LOG(g_logger) <<"onMessage: "<<recv_buffer->getMDataSize()<<" "<<send_buffer->getMDataSize();
         const string str = recv_buffer->read(recv_buffer->getMDataSize());
-        if(str.size() && str != "\r\n")  send_buffer->write("MoreTestServer:"+str);
+
+        if(str.size() && str != "\r\n")  send_buffer->write("server:"+str);
+//        ERROR_LOG(g_logger) <<"send_buffer.size="<<send_buffer->getMDataSize()<<"   "<< str ;
     }
 
 private:
+    size_t m_num = 0;
 };
 
 int main() {
-//    ConfigManager::loadYamlFromDir("/home/cwj2001/cwj/myCppProject/config");
+    ConfigManager::loadYamlFromDir("/home/cwj2001/cwj/myCppProject/config");
     TcpServer::ptr server(new MoreTestServer("server", 1, 1, false));
     server->bind(IPv4Address::Create("0.0.0.0", 8033));
     server->start();

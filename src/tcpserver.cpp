@@ -6,11 +6,13 @@
 
 #include "tcpserver.h"
 #include "log.h"
-
+#include "config.h"
 namespace CWJ_CO_NET {
 
     static auto g_logger = GET_LOGGER("tcpserver");
-
+    static auto g_more_tcp_server_recv_buffer_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.recv_buffer_size",1024,"more_tcp_server_recv_buffer_size");
+    static auto g_more_tcp_server_bytearray_base_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.bytearray_base_size",1024,"more_tcp_server_bytearray_base_size");
+    static auto g_more_tcp_server_error_sleep = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.error_sleep",3,"more_tcp_server_error_sleep");
 
     void TcpServer::bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
         for (auto &a:addrs) {
@@ -43,6 +45,7 @@ namespace CWJ_CO_NET {
         }
         CWJ_ASSERT(m_accept_fds.size());
         for (auto a :m_accept_fds) {
+            a->setNonBlock();
             m_accept_iom->schedule(std::bind(&TcpServer::handleAccept, shared_from_this(), a), -1);
         }
         m_io_iom->start();
@@ -86,13 +89,17 @@ namespace CWJ_CO_NET {
             if(!client) {
                 ERROR_LOG(g_logger) << "accept errno=" << errno
                                     << " errstr=" << strerror(errno);
+                handleAcceptError();
                 continue;
+            }else{
+                INFO_LOG(g_logger) << "accept accrpt";
             }
-            INFO_LOG(g_logger)<<*client<<"connect";
             if((m_accept_shared && m_io_iom->getMPendingEventCount() > m_accept_iom->getMPendingEventCount())
                 || m_only_accept){
+                INFO_LOG(g_logger) << "1.add client";
                 m_accept_iom->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client),-1);
             }else {
+                INFO_LOG(g_logger) << "2.add client";
                 m_io_iom->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client), -1);
             }
         }
@@ -109,23 +116,26 @@ namespace CWJ_CO_NET {
             , m_stopping(true)
             , m_only_accept(!io_thread_count){}
 
+    void TcpServer::handleAcceptError() {
+        sleep(g_more_tcp_server_error_sleep->getMVal());
+    }
+
 
     void MoreTcpServer::handleClient(Socket::ptr sock) {
         // 刚连接时的回调
         onConnection(sock);
-
-        ByteArray::ptr recv_buffer(new ByteArray(1024));
-        ByteArray::ptr send_buffer(new ByteArray(1024));
+        auto base_size = g_more_tcp_server_bytearray_base_size->getMVal();
+        ByteArray::ptr recv_buffer(new ByteArray(base_size));
+        ByteArray::ptr send_buffer(new ByteArray(base_size));
 
         int size = 0;
         std::vector<iovec> recv_ios, send_ios;
 
         while (sock->isConnect()) {
 
-
             // 接收报文
             recv_ios.clear();
-            recv_buffer->getWriteBuffers(recv_ios, 1024,false);
+            recv_buffer->getWriteBuffers(recv_ios, g_more_tcp_server_recv_buffer_size->getMVal(),false);
             if((size = sock->recv(&*recv_ios.begin(), recv_ios.size()))<=0) {
                 break;
             }
@@ -148,5 +158,22 @@ namespace CWJ_CO_NET {
         // 套接字关闭前的回调
         onClose(sock);
         sock->close();
+        uint64_t u = 2;
+        write(m_accept_error_wake_fd,&u,sizeof(uint64_t));
+    }
+
+    void MoreTcpServer::handleAcceptError() {
+        uint64_t u = 0;
+        m_accept_idle_count++;
+        read(m_accept_error_wake_fd,&u,sizeof(u));
+        INFO_LOG(g_logger) << "accept_wake_read="<<u;
+        m_accept_idle_count--;
+    }
+
+    MoreTcpServer::MoreTcpServer(const std::string &mName, size_t acceptThreadCount, size_t ioThreadCount,
+                                 bool acceptShared) :m_accept_idle_count(0), TcpServer(mName, acceptThreadCount, ioThreadCount, acceptShared) {
+
+        m_accept_error_wake_fd = eventfd(0,0);
+
     }
 }

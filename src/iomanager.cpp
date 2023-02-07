@@ -72,7 +72,7 @@ namespace CWJ_CO_NET {
                 fd_context->m_types = (EventType) (fd_context->m_types & ~(real_event));
                 event.events = fd_context->m_types | EPOLLET;
                 int op = fd_context->m_types == NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
-                int rt = epoll_ctl(m_epoll_fd, op, fd_context->m_fd, &evs[i]);
+                int rt = epoll_ctl(m_epoll_fd, op, fd_context->m_fd, &event);
 
                 // 要是操作不超过，那么就不执行任务；
                 if (rt) {
@@ -83,13 +83,17 @@ namespace CWJ_CO_NET {
                     continue;
                 }
 
+
+
                 if (real_event & EPOLLIN) {
                     fd_context->triggerEvent(READ);
+                    INFO_LOG(g_logger) << "IOManager::idle() sock="<<fd_context->m_fd<<" trigger read ";
                     --m_pending_event_count;
                 }
 
                 if (real_event & EPOLLOUT) {
                     fd_context->triggerEvent(WRITE);
+                    INFO_LOG(g_logger) << "IOManager::idle() sock="<<fd_context->m_fd<<" trigger write";
                     --m_pending_event_count;
                 }
 
@@ -248,9 +252,11 @@ namespace CWJ_CO_NET {
         if (event_type == READ) {
             fd_ctx->triggerEvent(event_type);
             fd_ctx->m_read_ev.reset();
+            INFO_LOG(g_logger) << "sock="<<fd<<" cancel read ";
         } else if (event_type == WRITE) {
             fd_ctx->triggerEvent(event_type);
             fd_ctx->m_write_ev.reset();
+            INFO_LOG(g_logger) << "sock="<<fd<<" cancel write ";
         }
         return true;
     }
@@ -284,9 +290,11 @@ namespace CWJ_CO_NET {
 
 
         if (fd_ctx->triggerEvent(READ)) {
+            INFO_LOG(g_logger) << "sock="<<fd<<" cancel read ";
             --m_pending_event_count;
         }
         if (fd_ctx->triggerEvent(WRITE)) {
+            INFO_LOG(g_logger) << "sock="<<fd<<" cancel write ";
             --m_pending_event_count;
         }
 
@@ -346,7 +354,11 @@ namespace CWJ_CO_NET {
         auto &ctx = this->getContextFromType(type);
 
         if (ctx.m_co) {
-            CWJ_ASSERT(ctx.m_co->getMState() == CoState::State::HOLD);
+            if(ctx.m_co->getMState() != CoState::State::HOLD) {
+                ERROR_LOG(g_logger) << "ctx.m_co.state="<<ctx.m_co->getMState()<<" "<<ctx.m_co->getMId();
+                CWJ_ASSERT(ctx.m_co->getMState() == CoState::State::HOLD);
+            }
+            INFO_LOG(g_logger) << " FdContext::triggerEvent(EventType type) trigger="<<ctx.m_co->getMId();
             ctx.m_co->setMState(CoState::READY);
             ctx.m_scheduler->schedule(ctx.m_co, -1);
         } else if (ctx.m_cb) {

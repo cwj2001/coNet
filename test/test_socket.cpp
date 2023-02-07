@@ -12,11 +12,23 @@
 
 void test_client();
 
+void test_server();
+
 using namespace std;
 using namespace CWJ_CO_NET;
 
 int main(){
 
+    auto addr = IPv4Address::Create("192.168.23.134", 8034);
+    auto sock = Socket::CreateTCPSocket();
+    while(sock->connect(addr)) {
+
+    }
+
+    return 0;
+}
+
+void test_server() {
     Socket::ptr sock = Socket::CreateTCPSocket();
 
     Address::ptr addr = IPv4Address::Create("0.0.0.0",8033);
@@ -33,8 +45,6 @@ int main(){
         }
         cout<<"connection :"<<*client<<" close "<<endl;
     }
-
-    return 0;
 }
 
 void test_client() {

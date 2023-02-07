@@ -11,6 +11,7 @@
 
 #include "util.h"
 #include "log.h"
+#include "macro.h"
 
 namespace CWJ_CO_NET{
     std::string GetAbsolutePath(const std::string & path){
@@ -44,7 +45,10 @@ namespace CWJ_CO_NET{
 
         static auto Deleter = [](DIR * dir){closedir(dir);};
         std::unique_ptr<DIR, decltype(Deleter)>dirStream(opendir(path.c_str()),Deleter);
-
+        if(!dirStream) {
+            INFO_LOG(GET_ROOT_LOGGER()) <<"path:"<< path.c_str() << " not exist";
+            CWJ_ASSERT(dirStream);
+        }
         struct dirent* dirInfo = nullptr;
         while((dirInfo = readdir(dirStream.get()))){
             if(dirInfo->d_type == DT_DIR){

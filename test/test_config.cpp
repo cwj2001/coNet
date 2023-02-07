@@ -36,20 +36,25 @@ int main() {
     INFO_LOG(g_Logger)<<val->getMVal()<<" "<<g_name_v->getMVal()<<" "<<g_age_v->getMVal()<<endl;
     INFO_LOG(g_Logger)<<" ============= course list ================";
     for(auto &a:g_course_list->getMVal()){
-        cout<<a<<" ";
+        INFO_LOG(g_Logger)<<a<<" ";
     }
     cout<<endl;
 
     INFO_LOG(g_Logger)<<" ============= people.boy.a list ================";
     for(auto &a:g_people_a_list->getMVal()){
-        cout<<a<<" ";
+        ERROR_LOG(g_Logger)<<a<<" ";
     }
 
     cout<<endl;
 
     INFO_LOG(g_Logger)<<" ============= map ================";
     for(auto &a:g_people_b_map->getMVal()){
-        cout<<a.first<<" "<<a.second<<endl;
+        INFO_LOG(g_Logger)<<a.first<<" "<<a.second<<endl;
+    }
+
+    for(int i=0;i<100000;i++){
+        INFO_LOG(g_Logger) << "tetet_"+to_string(i);
+        ERROR_LOG(g_Logger) << "tetet_"+to_string(i);
     }
 
 

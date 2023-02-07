@@ -57,6 +57,9 @@ namespace CWJ_CO_NET {
         template<typename T>
         void schedule(const T & t,int thread_id){
             CoOrFunc task(t,thread_id);
+            if(task.m_co) {
+                INFO_LOG(GET_LOGGER("system")) << "schedule("<<task.m_co->m_id<<")";
+            }
             if(task.m_co || task.m_cb){
                 {
                     MutexType::Lock lock(m_mutex);

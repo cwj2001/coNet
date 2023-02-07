@@ -78,12 +78,11 @@ namespace CWJ_CO_NET {
                 }
             }
 
-
-
             if (is_wake || m_tasks.size()) {
                 wake();
             }
             if (has_task) {
+                INFO_LOG(g_logger) << "1.get hask";
                 if (!task.m_co && task.m_cb) {
                     task.m_co.reset(new Coroutine(task.m_cb, 0, true));
                 }
@@ -94,8 +93,10 @@ namespace CWJ_CO_NET {
                 --m_active_thread_count;
                 task.reset();
             } else if (m_stopping || m_auto_stop) {
+
                 break;
             } else {
+                INFO_LOG(g_logger) << "2.get hask";
                 ++m_idle_thread_count;
                 idle();
                 --m_idle_thread_count;

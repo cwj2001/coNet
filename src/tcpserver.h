@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <sys/eventfd.h>
 
 #include "iomanager.h"
 #include "address.h"
@@ -41,6 +42,8 @@ namespace CWJ_CO_NET {
 
         virtual void handleAccept(Socket::ptr sock);
 
+        virtual void handleAcceptError();
+
     private:
         const std::string m_name;
         IOManager::ptr m_io_iom;
@@ -61,8 +64,7 @@ namespace CWJ_CO_NET {
         using ptr = std::shared_ptr<MoreTcpServer>;
         using CallBack = std::function<void()>;
 
-        MoreTcpServer(const std::string &mName, size_t acceptThreadCount, size_t ioThreadCount, bool acceptShared) : TcpServer(
-                mName, acceptThreadCount, ioThreadCount, acceptShared) {}
+        MoreTcpServer(const std::string &mName, size_t acceptThreadCount, size_t ioThreadCount, bool acceptShared);
 
         virtual void onConnection(Socket::ptr&) = 0;
 
@@ -74,8 +76,11 @@ namespace CWJ_CO_NET {
 
         void handleClient(Socket::ptr sock) override;
 
-    private:
+        void handleAcceptError() override;
 
+    private:
+        eventfd_t m_accept_error_wake_fd;
+        std::atomic<size_t> m_accept_idle_count;
     };
 
 

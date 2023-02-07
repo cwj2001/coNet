@@ -86,7 +86,7 @@ namespace CWJ_CO_NET {
 
 
     template<typename Func, typename ...Args>
-    int do_io(int sockfd, Func func,std::string name,CWJ_CO_NET::IOManager::EventType event_type,
+    int do_io(int sockfd, Func func, std::string name, CWJ_CO_NET::IOManager::EventType event_type,
               CWJ_CO_NET::FdCtx::TimeoutType timeout_type, Args &&...args) {
 
 
@@ -98,22 +98,23 @@ namespace CWJ_CO_NET {
 
         if (!fd_ctx || fd_ctx->isMClose() || !fd_ctx->isMIsNonblock()
             || !fd_ctx->isMIsSocket()) {
-            if(name == "recv")CWJ_ASSERT(false);
+            if (name == "recv")CWJ_ASSERT(false);
             return func(sockfd, std::forward<Args>(args)...);
         }
+
+        INFO_LOG(GET_ROOT_LOGGER()) << "hook" << name;
 
         auto iomanager = CWJ_CO_NET::IOManager::GetThis();
         auto co = CWJ_CO_NET::Coroutine::GetThis();
 
         uint64_t ms = fd_ctx->getTimeout(timeout_type);
 
-
         std::shared_ptr<CWJ_CO_NET::ConditionInfo> con_info(new CWJ_CO_NET::ConditionInfo);
         std::weak_ptr<CWJ_CO_NET::ConditionInfo> con(con_info);
 
         CWJ_CO_NET::Timer::ptr timer = nullptr;
         if (ms != (uint64_t) -1) {
-            INFO_LOG(g_logger) << "ms :"<<ms;
+            INFO_LOG(g_logger) << "ms :" << ms;
             iomanager->addConditionTimer(ms, [con, iomanager, sockfd, event_type]() {
                 auto ptr = con.lock();
                 if (!ptr || ptr->isMIsCancel()) return;
@@ -122,28 +123,34 @@ namespace CWJ_CO_NET {
             }, con, false);
         }
         do {
-            iomanager->addEvent(sockfd, event_type);
-            CWJ_CO_NET::Coroutine::YieldToHold();
 
-            {
-                if (!con_info || con_info->isMIsCancel() == true) {
-                    WARN_LOG(g_logger) << "accept timeout";
-                    return -1;
-                }
-            }
-
-            if (timer) timer->cancel();
 
             int rt = func(sockfd, std::forward<Args>(args)...);
-            while(rt == -1 && errno == EINTR) {
+            while (rt == -1 && errno == EINTR) {
                 rt = func(sockfd, std::forward<Args>(args)...);
             }
             if (rt >= 0) {
+                if (timer) timer->cancel();
+                if (name == "accept") INFO_LOG(g_logger) << "hook accrpt get rt = " << rt;
                 return rt;
             } else if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+
+                iomanager->addEvent(sockfd, event_type);
+                CWJ_CO_NET::Coroutine::YieldToHold();
+
+                {
+                    if (!con_info || con_info->isMIsCancel() == true) {
+                        WARN_LOG(g_logger) << "accept timeout";
+                        return -1;
+                    }
+                }
+
                 continue;
             } else {
-                ERROR_LOG(g_logger) << "accept error ,errno=" << errno << " strerror= " << strerror(errno);
+                ERROR_LOG(g_logger) << name << " error ,errno=" << errno << " strerror= " << strerror(errno);
+                if (name == "accept") {
+                    ERROR_LOG(g_logger) << "accept hook";
+                }
                 return -1;
             }
         } while (true);
@@ -217,23 +224,25 @@ int socket(int domain, int type, int protocol) {
 
 }
 
-int connect_timeout(int sockfd, const struct sockaddr *addr,
-                    socklen_t addrlen, uint64_t ms) {
+int connect_with_timeout(int sockfd, const struct sockaddr *addr,
+                         socklen_t addrlen, uint64_t ms) {
 
-    if (CWJ_CO_NET::IsHookEnable()) {
+
+    if (!CWJ_CO_NET::IsHookEnable()) {
         return connect_f(sockfd, addr, addrlen);
     }
 
     auto fd_ctx = CWJ_CO_NET::FdMgr::GetInstance()->get(sockfd, false);
 
-    if (!fd_ctx || !fd_ctx->isMIsNonblock() || !fd_ctx->isMIsSocket()) {
+    if (!fd_ctx || !fd_ctx->isMIsNonblock() || !fd_ctx->isMIsSocket() || fd_ctx->isMClose()) {
         return connect_f(sockfd, addr, addrlen);
     }
 
     int rt = connect_f(sockfd, addr, addrlen);
 
     if (rt == 0) return 0;
-    else if (!(rt == -1 && errno == EAGAIN)) {
+    else if ((rt == -1 && errno != EAGAIN && errno != EINPROGRESS)) {
+        CWJ_ASSERT(errno != EINPROGRESS);
         // 出现错误
         ERROR_LOG(g_logger) << "connect error ,errno=" << errno << " strerror= " << strerror(errno);
         return rt;
@@ -242,26 +251,37 @@ int connect_timeout(int sockfd, const struct sockaddr *addr,
     auto iomanager = CWJ_CO_NET::IOManager::GetThis();
     auto co = CWJ_CO_NET::Coroutine::GetThis();
 
-    std::shared_ptr<bool> is_cancel(new bool);
-    (*is_cancel) = false;
-    std::weak_ptr<bool> con(is_cancel);
+    using CWJ_CO_NET::ConditionInfo;
 
-    auto timer = iomanager->addConditionTimer(ms, [con, iomanager, sockfd]() {
-        auto ptr = con.lock();
-        if (!ptr || (*ptr)) {
-            return;
-        }
-        (*ptr) = true;
-        iomanager->cancelEvent(sockfd, CWJ_CO_NET::IOManager::WRITE);
-    }, con, false);
+    std::shared_ptr<ConditionInfo> con_info(new ConditionInfo);
+    con_info->setMIsCancel(false);
+    std::weak_ptr<ConditionInfo> con(con_info);
+    CWJ_CO_NET::Timer::ptr timer= nullptr;
+    if(ms != uint64_t(-1)) {
+        timer = iomanager->addConditionTimer(ms, [con, iomanager, sockfd]() {
+            auto ptr = con.lock();
+            if (!ptr || ptr->isMIsCancel()) {
+                return;
+            }
+            ptr->setMIsCancel(true);
+            CWJ_ASSERT(false);
+            iomanager->cancelEvent(sockfd, CWJ_CO_NET::IOManager::WRITE);
+        }, con, false);
+    }
     rt = iomanager->addEvent(sockfd, CWJ_CO_NET::IOManager::WRITE);
-
     if (rt) {
         CWJ_CO_NET::Coroutine::YieldToHold();
+        INFO_LOG(g_logger) << " connect after yield";
         if (timer)timer->cancel();
-        if (is_cancel || !(*is_cancel)) return 0;
-        else return -1;
+        if (con_info || !con_info->isMIsCancel()) return 0;
+        else {
+            CWJ_ASSERT(false);
+            return -1;
+        }
+        CWJ_ASSERT(false);
+
     } else {
+        // 如果加不进去，那么一定出现错误，所以不需要定时器了
         if (timer)timer->cancel();
         ERROR_LOG(g_logger) << "addEvent error";
     }
@@ -275,6 +295,7 @@ int connect_timeout(int sockfd, const struct sockaddr *addr,
         return 0;
     } else {
         errno = error;
+        CWJ_ASSERT(false);
         return -1;
     }
 
@@ -283,15 +304,15 @@ int connect_timeout(int sockfd, const struct sockaddr *addr,
 
 int connect(int sockfd, const struct sockaddr *addr,
             socklen_t addrlen) {
-    return connect_timeout(sockfd, addr, addrlen, CWJ_CO_NET::g_tcp_connect_timeout->getMVal());
+    return connect_with_timeout(sockfd, addr, addrlen, CWJ_CO_NET::g_tcp_connect_timeout->getMVal());
 }
 
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    int rt = do_io(sockfd, accept_f,"accept",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, addr, addrlen);
+    int rt = do_io(sockfd, accept_f, "accept", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, addr, addrlen);
 
-    if(rt >= 0){
-        CWJ_CO_NET::FdMgr::GetInstance()->get(rt,true);
+    if (rt >= 0) {
+        CWJ_CO_NET::FdMgr::GetInstance()->get(rt, true);
     }
 
     return rt;
@@ -300,45 +321,46 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
 
 
 ssize_t read(int fd, void *buf, size_t count) {
-    return do_io(fd, read_f,"read",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, count);
+    return do_io(fd, read_f, "read", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, count);
 }
 
 ssize_t readv(int fd, const struct iovec *iov, int iovcnt) {
-    return do_io(fd, readv_f,"readv",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, iov, iovcnt);
+    return do_io(fd, readv_f, "readv", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, iov, iovcnt);
 }
 
 ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
-    INFO_LOG(g_logger)<<"hook recv";
-    return do_io(sockfd, recv_f, "recv",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, len, flags);
+    return do_io(sockfd, recv_f, "recv", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, len, flags);
 }
 
 ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen) {
-    return do_io(sockfd, recvfrom_f, "recvfrom",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, len, flags,
+    return do_io(sockfd, recvfrom_f, "recvfrom", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, buf, len,
+                 flags,
                  src_addr, addrlen);
 }
 
 ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags) {
-    return do_io(sockfd, recvmsg_f, "recvmsg",CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, msg, flags);
+    return do_io(sockfd, recvmsg_f, "recvmsg", CWJ_CO_NET::IOManager::READ, CWJ_CO_NET::FdCtx::RCVTIMEO, msg, flags);
 }
 
 ssize_t write(int fd, const void *buf, size_t count) {
-    return do_io(fd, write_f, "write",CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, buf, count);
+    return do_io(fd, write_f, "write", CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, buf, count);
 }
 
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
-    return do_io(fd, writev_f, "writev",CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, iov, iovcnt);
+    return do_io(fd, writev_f, "writev", CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, iov, iovcnt);
 }
 
 ssize_t send(int s, const void *msg, size_t len, int flags) {
-    return do_io(s, send_f, "send",CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, len, flags);
+    return do_io(s, send_f, "send", CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, len, flags);
 }
 
 ssize_t sendto(int s, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen) {
-    return do_io(s, sendto_f, "sendto",CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, len, flags, to, tolen);
+    return do_io(s, sendto_f, "sendto", CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, len, flags, to,
+                 tolen);
 }
 
 ssize_t sendmsg(int s, const struct msghdr *msg, int flags) {
-    return do_io(s, sendmsg_f, "sendmsg",CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, flags);
+    return do_io(s, sendmsg_f, "sendmsg", CWJ_CO_NET::IOManager::WRITE, CWJ_CO_NET::FdCtx::SNDTIMEO, msg, flags);
 }
 
 

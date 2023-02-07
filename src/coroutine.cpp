@@ -75,7 +75,7 @@ namespace CWJ_CO_NET {
 
         g_thread_cur_co = this->shared_from_this();
         m_state = CoState::EXEC;
-
+        INFO_LOG(g_logger) << "Coroutine::call("<<m_id<<")";
         if (m_use_scheduler) {
             auto co = Scheduler::GetScheduleCo();
             CWJ_ASSERT(co);
@@ -193,9 +193,10 @@ namespace CWJ_CO_NET {
 
     void Coroutine::YieldToHold() {
 
-        INFO_LOG(g_logger) << "Coroutine::YieldToHold()";
+
 
         auto cur_co = GetThis();
+        INFO_LOG(g_logger) << "Coroutine::YieldToHold("<<cur_co->getMId()<<")";
         if (cur_co == g_thread_main_co) return;
         cur_co->m_state = CoState::HOLD;
         cur_co->back();

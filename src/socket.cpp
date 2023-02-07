@@ -11,11 +11,11 @@
 
 #include <sstream>
 
-
 #include "socket.h"
 #include "log.h"
 #include "macro.h"
 #include "fdmanager.h"
+#include "hook.h"
 
 namespace CWJ_CO_NET{
 
@@ -206,9 +206,16 @@ namespace CWJ_CO_NET{
             }
         }
 
+
         if(m_family != addr->getFamily()){
             ERROR_LOG(g_logger) << "socket(family="<<m_family<<") bind addr(family="<<addr->getFamily()<<") fail";
             return false;
+        }
+
+        CWJ_ASSERT(m_sock>=0);
+
+        if(IsHookEnable()){
+            setNonBlock();
         }
 
         if(timeout_ms == (uint64_t)-1) {
@@ -220,7 +227,7 @@ namespace CWJ_CO_NET{
             }
         } else {
             // TODO 目前没有涉及到定时器，所以超时机制还不能实现
-            if(true) {
+            if(::connect_with_timeout(m_sock, addr->getAddr(), addr->getAddrLen(),timeout_ms)) {
                 ERROR_LOG(g_logger) << "sock=" << m_sock << " connect(" << addr->toString()
                                           << ") timeout=" << timeout_ms << " error errno="
                                           << errno << " errstr=" << strerror(errno);
@@ -442,15 +449,21 @@ namespace CWJ_CO_NET{
 
     void Socket::setNonBlock() {
 
-        int flags=fcntl(m_sock,F_GETFL,0);
-        flags |=O_NONBLOCK;
+        CWJ_ASSERT(m_sock >= 0);
 
-        if(fcntl(m_sock,F_SETFL,flags)){
-            CWJ_ASSERT(false);
+        int flags=fcntl(m_sock,F_GETFL,0);
+        if(!(flags & O_NONBLOCK)) {
+            flags |= O_NONBLOCK;
+
+            if (fcntl(m_sock, F_SETFL, flags)) {
+                ERROR_LOG(g_logger) << "fcntl error,errno=" << errno << " strerror=" << strerror(errno);
+                CWJ_ASSERT(false);
+            }
         }
 
         auto fd_ctx = FdMgr::GetInstance()->get(m_sock,true);
         fd_ctx->setMIsNonblock(true);
+
     }
 
     int64_t Socket::getSendTimeout() {

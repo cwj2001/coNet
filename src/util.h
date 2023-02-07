@@ -11,6 +11,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+#include <chrono>
 
 namespace CWJ_CO_NET{
 
@@ -33,6 +34,42 @@ namespace CWJ_CO_NET{
     std::string BacktraceToStr(int size = 256,int skip = 0,const std::string& prefix = "",const std::string& suffix = "\n");
 
     uint64_t GetCurrentMs();
+
+//    template <typename T>
+//    struct TimeData {
+//        double count;
+//        T data;
+//        friend std::ostream &operator<<(std::ostream &os, const TimeData &res) {
+//            os << "res: " << res.data << " time: " << res.count << "ms" ;
+//            return os;
+//        }
+//    };
+//    template<typename T,typename A,typename... Args>
+//    auto CalcTime(T func,TimeData<A>data,Args... rest) -> decltype(data){
+//        auto start = std::chrono::system_clock::now();
+//        data.data = func(rest...);
+//        auto end = std::chrono::system_clock::now();
+//        std::chrono::duration<double> diff = end - start;
+//        data.count = diff.count();
+//        return data;
+//    }
+
+
+
+    template<typename T,typename... Args>
+    auto CalcTime(T&& func, Args&&... rest) -> double{
+        auto start = std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::system_clock::now().time_since_epoch()).count();
+        func(std::forward<Args>(rest)...);
+        auto end = std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::system_clock::now().time_since_epoch()).count();
+//    std::chrono::duration<double> diff = end-start;
+        // 计算毫秒时间差并输出
+        // 如果要求其他时间单位可以修改 std::chrono::milliseconds 为其他类型
+        // 比如std::chrono::seconds
+        return end-start;
+    }
+
 
 }
 

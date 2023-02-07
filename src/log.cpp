@@ -10,6 +10,7 @@
 #include "log.h"
 #include "config.h"
 #include "mutex.h"
+#include "macro.h"
 
 namespace CWJ_CO_NET {
 
@@ -101,7 +102,7 @@ namespace CWJ_CO_NET {
 
         }
         //TODO assert(m_logger!= nullptr);
-//        BacktraceToStr();
+        //std::cout<<"================="<<m_file<<":"<<m_line<<" "<<m_ss.str()<<std::endl;
         assert(m_logger!= nullptr);
     }
 
@@ -152,10 +153,13 @@ namespace CWJ_CO_NET {
     }
 
     void Logger::log(LogLevel level,LogEvent &event) {
-        if(m_appenders.empty() && m_root)   m_root->log(level,event);
+        if(m_appenders.empty() && m_root)   {
+            m_root->log(level,event);
+        }
         // 避免在遍历的时候，另外
         RWMutex::RLock lock(m_mutex);
         for (const auto &a : m_appenders) {
+            CWJ_ASSERT(a);
             a->log(level, event);
         }
 
@@ -207,7 +211,10 @@ namespace CWJ_CO_NET {
     }
 
     void StdoutLogAppender::log(LogLevel level,  LogEvent &event) {
-        if (m_level > event.getMLevel()) return;
+        if (m_level > event.getMLevel()){
+            m_out<<std::flush;//<<std::endl;
+            return;
+        }
         Mutex::Lock lock(m_mutex);
         m_formatter->format(m_out, event);
         m_out<<std::endl;
@@ -418,7 +425,10 @@ namespace CWJ_CO_NET {
     }
 
     void FileLogAppender::log(LogLevel level, LogEvent &event) {
-        if (m_level > event.getMLevel()) return;
+        if (m_level > event.getMLevel()) {
+            m_out<<std::flush;//<<std::endl;
+            return;
+        }
         Mutex::Lock lock(m_mutex);
         if(!m_out) m_out.open(file,std::ios::app);
         assert(m_out);
