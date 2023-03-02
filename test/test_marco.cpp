@@ -14,6 +14,7 @@ void test(int n = 10){
 
 int main(int argc, char* argv[])
 {
+    ucontext_t d;
     test();
     return 0;
 }

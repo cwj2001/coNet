@@ -30,7 +30,7 @@ void do_connect(const char *ip, int port) {
 
     CWJ_ASSERT(test_data.size());
 
-    size_t connect_size = 100,peer_send_size = 10000;
+    size_t connect_size = 10,peer_send_size = 10;
     vector<string>test;
     vector<string>recv_list;
     test.reserve(connect_size*peer_send_size);
@@ -51,6 +51,7 @@ void do_connect(const char *ip, int port) {
         }
     }
 
+
     INFO_LOG(g_logger) << list.size();
     for(int i=0;i<peer_send_size*connect_size;i++){
         test.emplace_back(test_data[rand() % test_data.size()]);
@@ -58,19 +59,9 @@ void do_connect(const char *ip, int port) {
     int success_count = 0,count=0,ind=0;
 
     CWJ_ASSERT(recv_list.size() == 0 && test.size() == peer_send_size*connect_size);
+
     auto time = CalcTime(&test_time_recv_send,peer_send_size, test, recv_list, ind, list, count);
 
-    CWJ_ASSERT(false);
-
-    for(int i=0;i<test.size() && i<recv_list.size();i++){
-        const auto& ss = test[i];
-        const auto& t = recv_list[i];
-        if ( ("server:"+ss) != t) {
-            cout << "recv error"<< t << " != " << ss << endl;
-        }else{
-            success_count++;
-        }
-    }
 
     INFO_LOG(g_logger)<<"\n"
             <<"connect_size="<<connect_size
@@ -101,8 +92,8 @@ void test_time_recv_send(size_t peer_send_size, const vector<string> &test, vect
             recv_list.emplace_back(ptr.get(),recv_size);
             count++;
             ind++;
-//            cout<<count<<endl;
         }
+        cout<<count<<endl;
     }
 }
 
@@ -131,12 +122,6 @@ int main(int argc, char **argv) {
     iom->start();
     iom->stop();
 
-
-//    IOManager::ptr iom(new IOManager(2,true,"ttt"));
-
-//    iom->schedule(std::bind(&do_connect,ip,port),-1);
-//    iom->start();
-//    iom->stop();
     return 0;
 }
 

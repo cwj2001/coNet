@@ -35,6 +35,14 @@ namespace CWJ_CO_NET{
 
     uint64_t GetCurrentMs();
 
+    std::string Time2Str(time_t ts, const std::string& format);
+
+    std::string StringTrim(const std::string& str, const std::string& delimit);
+
+    std::string UrlDecode(const std::string& str, bool space_as_plus);
+
+    std::string UrlEncode(const std::string& str, bool space_as_plus) ;
+
 //    template <typename T>
 //    struct TimeData {
 //        double count;
