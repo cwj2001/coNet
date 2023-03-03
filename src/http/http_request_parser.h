@@ -5,8 +5,10 @@
 #ifndef CWJ_CO_NET_HTTP_REQUEST_PARSER_H
 #define CWJ_CO_NET_HTTP_REQUEST_PARSER_H
 
+#include <queue>
 #include "http_parser/http_parser.h"
 #include "http.h"
+#include "log.h"
 namespace CWJ_CO_NET { namespace http{
 
     class HttpRequestParser{
@@ -15,15 +17,17 @@ namespace CWJ_CO_NET { namespace http{
 
         size_t execute(const char* data, size_t len);
 
-        int isFinished();
+        int hasNext();
 
-        int hasError();
 
-        HttpRequest::ptr getData() const { return m_req;}
-
-        void setError(int v) { m_error = v;}
-
-        uint64_t getContentLength();
+        std::pair<HttpRequest::ptr,bool> getNextData(){
+            if(!m_finish)   return {nullptr,true};
+            auto t = m_req_que.front();
+            m_req_que.pop();
+            m_finish -= 1;
+            INFO_LOG(GET_ROOT_LOGGER()) << "m_finish:" << m_finish;
+            return t;
+        }
 
         const http_parser& getParser() const { return m_parser;}
     public:
@@ -55,10 +59,10 @@ namespace CWJ_CO_NET { namespace http{
         const http_parser_settings& getSetting();
     private:
         http_parser m_parser;
-        HttpRequest::ptr m_req;
+        // 协议报文和错误码
+        std::queue<std::pair<HttpRequest::ptr,bool>> m_req_que;
         std::string m_last_key;
-        int m_error = 0;
-        bool m_finish = false;
+        uint32_t m_finish = 0;
 
         static void initData(HttpRequestParser *t);
     };

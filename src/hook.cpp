@@ -102,7 +102,6 @@ namespace CWJ_CO_NET {
             return func(sockfd, std::forward<Args>(args)...);
         }
 
-        INFO_LOG(GET_ROOT_LOGGER()) << "hook" << name;
 
         auto iomanager = CWJ_CO_NET::IOManager::GetThis();
         auto co = CWJ_CO_NET::Coroutine::GetThis();
@@ -271,7 +270,7 @@ int connect_with_timeout(int sockfd, const struct sockaddr *addr,
     rt = iomanager->addEvent(sockfd, CWJ_CO_NET::IOManager::WRITE);
     if (rt) {
         CWJ_CO_NET::Coroutine::YieldToHold();
-        INFO_LOG(g_logger) << " connect after yield";
+//        INFO_LOG(g_logger) << " connect after yield";
         if (timer)timer->cancel();
         if (con_info || !con_info->isMIsCancel()) return 0;
         else {

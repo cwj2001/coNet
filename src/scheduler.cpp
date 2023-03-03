@@ -28,7 +28,6 @@ namespace CWJ_CO_NET {
 
         beforeRunScheduler();
 
-        INFO_LOG(g_logger) << "schedule run func start ";
 
         g_scheduler = this->shared_from_this();
 
@@ -45,7 +44,6 @@ namespace CWJ_CO_NET {
         while (true) {
             bool is_wake = false;
             bool has_task = false;
-            INFO_LOG(g_logger)<<"total:"<<m_tasks.size();
             {
                 MutexType::Lock lock(m_mutex);
                 if (m_stopping && m_tasks.empty()) break;
@@ -82,7 +80,6 @@ namespace CWJ_CO_NET {
                 wake();
             }
             if (has_task) {
-                INFO_LOG(g_logger) << "1.get hask";
                 if (!task.m_co && task.m_cb) {
                     task.m_co.reset(new Coroutine(task.m_cb, 0, true));
                 }
@@ -96,7 +93,6 @@ namespace CWJ_CO_NET {
 
                 break;
             } else {
-                INFO_LOG(g_logger) << "2.get hask";
                 ++m_idle_thread_count;
                 idle();
                 --m_idle_thread_count;

@@ -43,6 +43,8 @@ namespace CWJ_CO_NET{
 
     std::string UrlEncode(const std::string& str, bool space_as_plus) ;
 
+    bool StrCmpIg(const char * a,const char *b,bool isIgnore);
+
 //    template <typename T>
 //    struct TimeData {
 //        double count;

@@ -30,7 +30,7 @@ void do_connect(const char *ip, int port) {
 
     CWJ_ASSERT(test_data.size());
 
-    size_t connect_size = 10,peer_send_size = 10;
+    size_t connect_size = 100,peer_send_size = 10000;
     vector<string>test;
     vector<string>recv_list;
     test.reserve(connect_size*peer_send_size);
@@ -90,10 +90,27 @@ void test_time_recv_send(size_t peer_send_size, const vector<string> &test, vect
                 continue;
             }
             recv_list.emplace_back(ptr.get(),recv_size);
+//            cout<<string(ptr.get(),recv_size)<<endl;
             count++;
             ind++;
+
+            // 240000 250000
+// 242500 245000
+// 241500 242500
+// 240000 247500
+            if(count>240000){
+                cout<<count<<endl;
+            }
+            if(count == 240027){
+                cout<<"";
+            }
+//            if(count == 242500){
+//                CWJ_ASSERT(false);
+//            }
+
         }
-        cout<<count<<endl;
+//        cout<<count<<endl;
+
     }
 }
 

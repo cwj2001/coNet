@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <signal.h>
 
 #include "util.h"
 #include "tcpserver.h"
@@ -77,6 +78,9 @@ private:
 };
 
 int main() {
+
+    signal (SIGPIPE, SIG_IGN);
+
 //    ConfigManager::loadYamlFromDir("/home/cwj2001/cwj/myCppProject/config");
     TcpServer::ptr server(new MoreTestServer("server", 1, 1, false));
     server->bind(IPv4Address::Create("0.0.0.0", 8033));

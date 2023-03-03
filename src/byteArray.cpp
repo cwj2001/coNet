@@ -222,5 +222,14 @@ namespace CWJ_CO_NET {
         m_capacity += node->m_size;
     }
 
+    ByteArray::~ByteArray() {
+        for(auto it = m_read_node;it;){
+            CWJ_ASSERT(it);
+            auto nt = it->m_next;
+            delete it;
+            it = nt;
+        }
+    }
+
 
 }

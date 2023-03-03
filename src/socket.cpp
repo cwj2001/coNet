@@ -188,6 +188,7 @@ namespace CWJ_CO_NET{
 
     bool Socket::close() {
         if(!m_is_connect && m_sock == -1)   return true;
+        INFO_LOG(g_logger) << "sock:"<<m_sock<<" close ";
         m_is_connect = false;
         if(m_sock != -1){
             ::close(m_sock);
@@ -258,7 +259,10 @@ namespace CWJ_CO_NET{
     }
 
     int Socket::send(const iovec *buffers, size_t length, int flags) {
+        static int count = 0;
         if(isConnect()){
+            count ++ ;
+            INFO_LOG(g_logger) <<"Socket::send:"<< count;
             msghdr msg;
             memset(&msg,0,sizeof (msghdr));
             msg.msg_iov = (iovec*)buffers;
@@ -289,14 +293,20 @@ namespace CWJ_CO_NET{
     }
 
     int Socket::recv(void *buffer, size_t length, int flags) {
+        static int count = 0;
         if(isConnect()) {
+            count ++ ;
+            INFO_LOG(g_logger) << "Socket::recv : "<<count ;
             return ::recv(m_sock, buffer, length, flags);
         }
         return -1;
     }
 
     int Socket::recv(iovec *buffers, size_t length, int flags) {
+        static int count = 0;
         if(isConnect()) {
+            count++;
+            INFO_LOG(g_logger) <<"Socket::recv:"<< count ;
             msghdr msg;
             memset(&msg, 0, sizeof(msg));
             msg.msg_iov = (iovec*)buffers;

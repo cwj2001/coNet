@@ -15,8 +15,7 @@
 namespace CWJ_CO_NET {
 
     static Logger::ptr g_logger = GET_LOGGER("system");
-    static auto g_stack_size = ConfigVar<int>::ptr(new ConfigVar<int>("", "", 128 *
-                                                                              1024));// GET_CONFIG_MGR()->lookup<int>("cwj_co_net.coroutine.stack_size",64*1024,"coroutine stack size");
+    static auto g_stack_size = ConfigVar<int>::ptr(new ConfigVar<int>("", "", 128*1024));// GET_CONFIG_MGR()->lookup<int>("cwj_co_net.coroutine.stack_size",64*1024,"coroutine stack size");
 
     static thread_local Coroutine::ptr g_thread_main_co;
     static thread_local Coroutine::ptr g_thread_cur_co;
@@ -75,7 +74,6 @@ namespace CWJ_CO_NET {
 
         g_thread_cur_co = this->shared_from_this();
         m_state = CoState::EXEC;
-        INFO_LOG(g_logger) << "Coroutine::call("<<m_id<<")";
         if (m_use_scheduler) {
             auto co = Scheduler::GetScheduleCo();
             CWJ_ASSERT(co);
@@ -135,9 +133,7 @@ namespace CWJ_CO_NET {
         CWJ_ASSERT(cur_co);
 
         try {
-            INFO_LOG(g_logger) << "m_cb start";
             cur_co->m_cb();
-            INFO_LOG(g_logger) << "m_cb finish";
             cur_co->m_state = CoState::TERM;
         } catch (std::exception &e) {
             cur_co->m_state = CoState::EXCEPT;
@@ -196,7 +192,6 @@ namespace CWJ_CO_NET {
 
 
         auto cur_co = GetThis();
-        INFO_LOG(g_logger) << "Coroutine::YieldToHold("<<cur_co->getMId()<<")";
         if (cur_co == g_thread_main_co) return;
         cur_co->m_state = CoState::HOLD;
         cur_co->back();

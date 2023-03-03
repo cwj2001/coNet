@@ -80,7 +80,7 @@ namespace CWJ_CO_NET {
 
     private:
         eventfd_t m_accept_error_wake_fd;
-        std::atomic<size_t> m_accept_idle_count;
+        std::atomic<size_t> m_accept_idle_count;// 用于负载均衡判断阻塞的accept数目的多少
     };
 
 

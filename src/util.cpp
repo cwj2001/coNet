@@ -249,6 +249,17 @@ namespace CWJ_CO_NET{
         }
     }
 
+    bool StrCmpIg(const char *a, const char *b, bool isIgnore) {
+        while(*a != '\0' && *b != '\0'){
+            if(isIgnore){
+                if(tolower(*a) != tolower(*b))  return false;
+            }else if(*a != *b)  return false;
+            a += 1;
+            b += 1;
+        }
+        if(*a != '\0' || *b != '\0')    return false;
+        return true;
+    }
 
 
 }

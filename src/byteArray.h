@@ -27,6 +27,8 @@ namespace CWJ_CO_NET{
 
         ByteArray(size_t mBaseSize, size_t mCapacity = 0);
 
+        virtual ~ByteArray();
+
         void updateCapacity(size_t size);
 
         size_t getMCapacity() const;

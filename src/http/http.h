@@ -555,7 +555,7 @@ namespace CWJ_CO_NET {
             /// HTTP版本
             uint8_t m_version;
             /// 是否自动关闭
-            bool m_close;
+            bool m_close = false;
             /// 是否为websocket
             bool m_websocket;
 

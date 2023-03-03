@@ -1,9 +1,13 @@
+#include <algorithm>
 #include <cstring>
 #include "http.h"
 #include "util.h"
-
+#include "macro.h"
+#include "log.h"
 namespace CWJ_CO_NET {
     namespace http {
+
+        static auto g_logger = GET_LOGGER("http_server");
 
         HttpMethod StringToHttpMethod(const std::string &m) {
 #define XX(num, name, string) \
@@ -84,7 +88,19 @@ namespace CWJ_CO_NET {
         }
 
         void HttpRequest::setHeader(const std::string &key, const std::string &val) {
+
+
+            std::string s = key;
+            std::transform(s.begin(),s.end(),s.begin(),::tolower);
+
+            if(s == "connection"){
+                INFO_LOG(g_logger) <<"connection s:"<<s<<" val: "<<val;
+//                CWJ_ASSERT(false);
+            }
+
             m_headers[key] = val;
+            std::cout<<key<<"========="<<s<<std::endl;
+
         }
 
         void HttpRequest::setParam(const std::string &key, const std::string &val) {
@@ -186,6 +202,7 @@ namespace CWJ_CO_NET {
 
         void HttpRequest::init() {
             std::string conn = getHeader("connection");
+            std::cout<<getHeader("connection")<<"==== HttpRequest::init()"<<std::endl;
             if (!conn.empty()) {
                 if (strcasecmp(conn.c_str(), "keep-alive") == 0) {
                     m_close = false;

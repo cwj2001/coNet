@@ -3,9 +3,13 @@
 //
 #include <cstring>
 #include "http_request_parser.h"
+#include "macro.h"
+#include "log.h"
 
 namespace CWJ_CO_NET {
     namespace http {
+
+        static auto g_logger = GET_LOGGER("http_server");
 
         http::HttpRequestParser::HttpRequestParser() {
             http_parser_init(&m_parser, HTTP_REQUEST);
@@ -35,10 +39,8 @@ namespace CWJ_CO_NET {
         }
 
         void HttpRequestParser::initData(HttpRequestParser *t) {
-            t->m_req.reset(new HttpRequest);
+            t->m_req_que.push({std::make_shared<HttpRequest>(0x11,false),0});
             t->m_last_key = "";
-            t->m_error = 0;
-            t->m_finish = false;
         }
 
         int HttpRequestParser::on_headers_complete(http_parser* _) {
@@ -48,8 +50,9 @@ namespace CWJ_CO_NET {
         }
 
         int HttpRequestParser::on_url(http_parser* parser, const char* at, size_t length) {
+//            INFO_LOG(g_logger) << std::string(at,length)<<std::endl;
             auto t = (HttpRequestParser*)parser->data;
-            t->m_req->setPath(std::string(at,length));
+            t->m_req_que.back().first->setPath(std::string(at,length));
             return 0;
         }
 
@@ -60,10 +63,10 @@ namespace CWJ_CO_NET {
 
         int HttpRequestParser::on_message_complete(http_parser* parser) {
             HttpRequestParser* self = (HttpRequestParser*)parser->data;
-            self->m_finish = true;
-            self->m_error = parser->http_errno;
-            self->m_req->setMethod(HttpMethod(parser->method));
-            http_parser_init(parser,HTTP_REQUEST);
+            auto req = self->m_req_que.back();
+            self->m_finish ++ ;
+            req.second = parser->http_errno;
+            req.first->setMethod(HttpMethod(parser->method));
             return 0;
         }
 
@@ -75,14 +78,14 @@ namespace CWJ_CO_NET {
 
         int HttpRequestParser::on_header_value(http_parser* parser, const char* at, size_t length) {
             auto t = (HttpRequestParser*)parser;
-            t->m_req->setHeader(t->m_last_key,std::string(at,length));
+            t->m_req_que.back().first->setHeader(t->m_last_key,std::string(at,length));
             return 0;
         }
 
         int HttpRequestParser::on_body(http_parser* parser, const char* at, size_t length) {
             printf("Body: %.*s\n", (int)length, at);
             auto t = (HttpRequestParser*)parser->data;
-            t->m_req->setBody(std::string(at,length));
+            t->m_req_que.back().first->setBody(std::string(at,length));
             return 0;
         }
 
@@ -99,21 +102,15 @@ namespace CWJ_CO_NET {
         }
 
         size_t HttpRequestParser::execute(const char *data, size_t len) {
+            INFO_LOG(g_logger)<<"init_data:"<<std::string(data,len);
             auto offset = http_parser_execute(&m_parser,&getSetting(),data,len);
 //            memmove(data,data+offset,len-offset);
+//            if(m_req_que.size())    INFO_LOG(g_logger) << m_req_que.front().first->toString();
             return offset;
         }
 
-        int HttpRequestParser::isFinished() {
-            return m_finish;
-        }
-
-        int HttpRequestParser::hasError() {
-            return m_error;
-        }
-
-        uint64_t HttpRequestParser::getContentLength() {
-            return std::stoll(m_req->getHeader("content-length", 0));
+        int HttpRequestParser::hasNext() {
+            return m_finish > 0;
         }
 
         uint64_t HttpRequestParser::GetHttpRequestBufferSize() {

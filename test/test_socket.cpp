@@ -9,6 +9,8 @@
 #include "socket.h"
 #include "address.h"
 #include "util.h"
+#include <signal.h>
+
 
 void test_client();
 
@@ -17,14 +19,43 @@ void test_server();
 using namespace std;
 using namespace CWJ_CO_NET;
 
-int main(){
-
-    auto addr = IPv4Address::Create("192.168.23.134", 8034);
+void test(){
+    auto addr = IPv4Address::Create("192.168.23.134", 8033);
     auto sock = Socket::CreateTCPSocket();
-    while(sock->connect(addr)) {
-
+    auto buf = "GET /name HTTP/1.1\r\n"
+               "Connection: close\r\n\r\n";
+    char recv_buf[1024];
+    memset(recv_buf,0,sizeof(recv_buf));
+    if(sock->connect(addr)) {
+        sock->send(buf,strlen(buf));
+        sock->recv(recv_buf,1024);
+        recv_buf[1023] = '\0';
+        cout<<recv_buf<<endl;
+    }else{
+        cout<<"connect error"<<endl;
     }
 
+    sock->close();
+    memset(recv_buf,0,sizeof(1024));
+
+    sock->send(buf,strlen(buf));
+    sock->recv(recv_buf,1024);
+    recv_buf[1023] = '\0';
+    cout<<recv_buf<<endl;
+
+}
+
+int main(){
+
+    signal(SIGPIPE, SIG_IGN);
+    auto buf = "GET /name HTTP/1.1\r\n"
+               "Connection: close\r\n\r\n";
+    char * recv_buf[1024];
+    auto s = socket(AF_INET,SOCK_STREAM,0);
+    cout<<"close sock send:"<<send(s,buf,strlen(buf),0)<<" errorstr:"<<strerror(errno)<<endl;
+    cout<<"close sock recv:"<<recv(s,recv_buf,strlen(buf),0)<<" errorstr:"<<strerror(errno)<<endl;
+
+    test();
     return 0;
 }
 

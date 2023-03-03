@@ -38,7 +38,6 @@ namespace CWJ_CO_NET {
                 static uint64_t  MAX_TIMEOUT = 30000ul;
                 uint64_t ms = getNextTimer();
                 ms = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
-                INFO_LOG(g_logger)<<"ms:"<<ms;
                 len = epoll_wait(m_epoll_fd, events.get(), MAX_EVENTS, ms);
                 if (len >0 || (len == 0 && EFAULT)) break;
                 else{
@@ -87,13 +86,12 @@ namespace CWJ_CO_NET {
 
                 if (real_event & EPOLLIN) {
                     fd_context->triggerEvent(READ);
-                    INFO_LOG(g_logger) << "IOManager::idle() sock="<<fd_context->m_fd<<" trigger read ";
                     --m_pending_event_count;
                 }
 
                 if (real_event & EPOLLOUT) {
                     fd_context->triggerEvent(WRITE);
-                    INFO_LOG(g_logger) << "IOManager::idle() sock="<<fd_context->m_fd<<" trigger write";
+//                    INFO_LOG(g_logger) << "IOManager::idle() sock="<<fd_context->m_fd<<" trigger write";
                     --m_pending_event_count;
                 }
 
@@ -358,7 +356,7 @@ namespace CWJ_CO_NET {
                 ERROR_LOG(g_logger) << "ctx.m_co.state="<<ctx.m_co->getMState()<<" "<<ctx.m_co->getMId();
                 CWJ_ASSERT(ctx.m_co->getMState() == CoState::State::HOLD);
             }
-            INFO_LOG(g_logger) << " FdContext::triggerEvent(EventType type) trigger="<<ctx.m_co->getMId();
+//            INFO_LOG(g_logger) << " FdContext::triggerEvent(EventType type) trigger="<<ctx.m_co->getMId();
             ctx.m_co->setMState(CoState::READY);
             ctx.m_scheduler->schedule(ctx.m_co, -1);
         } else if (ctx.m_cb) {
