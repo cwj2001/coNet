@@ -67,6 +67,7 @@ public:
 
     void onMessage(Socket::ptr& sock,ByteArray::ptr &recv_buffer, ByteArray::ptr &send_buffer) override {
 //        INFO_LOG(g_logger) <<"onMessage: "<<recv_buffer->getMDataSize()<<" "<<send_buffer->getMDataSize();
+        if(!sock->isConnect())  return ;
         const string str = recv_buffer->read(recv_buffer->getMDataSize());
 
         if(str.size() && str != "\r\n")  send_buffer->write("server:"+str);
@@ -83,7 +84,7 @@ int main() {
 
 //    ConfigManager::loadYamlFromDir("/home/cwj2001/cwj/myCppProject/config");
     TcpServer::ptr server(new MoreTestServer("server", 1, 1, false));
-    server->bind(IPv4Address::Create("0.0.0.0", 8033));
+    server->bind(IPv4Address::Create("0.0.0.0", 8035));
     server->start();
     return 0;
 }

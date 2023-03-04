@@ -11,7 +11,7 @@
 
 namespace CWJ_CO_NET {
     static auto g_logger = GET_LOGGER("system");
-    CWJ_CO_NET::ByteArray::Node::Node(size_t mSize, Node *next) : m_size(mSize), m_next(next) {
+    CWJ_CO_NET::ByteArray::Node::Node(size_t mSize, Node *next) : m_next(next),m_size(mSize) {
         m_ptr = new char[mSize];
     }
 
@@ -152,7 +152,7 @@ namespace CWJ_CO_NET {
 
                 size = rt;
 
-                auto tmp = write_node;
+//                auto tmp = write_node;
                 write_index = 0;
                 write_node = write_node->m_next;
             }

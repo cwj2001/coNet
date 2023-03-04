@@ -545,7 +545,7 @@ namespace CWJ_CO_NET {
             XX(LogLevel::UNKNOW,UNKNOW);
 #undef XX
         }
-        return std::move(res);
+        return res;
     }
 
     LogLevel LogLevelUtil::fromString(const std::string &str) {

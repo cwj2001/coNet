@@ -45,8 +45,8 @@ namespace CWJ_CO_NET{
 
         ~ScopeLock(){
             if(m_isLock){
-                m_mutex.unlock();
                 m_isLock = false;
+                m_mutex.unlock();
             }
         }
     private:

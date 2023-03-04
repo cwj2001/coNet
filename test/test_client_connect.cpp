@@ -30,7 +30,7 @@ void do_connect(const char *ip, int port) {
 
     CWJ_ASSERT(test_data.size());
 
-    size_t connect_size = 100,peer_send_size = 10000;
+    size_t connect_size = 100,peer_send_size = 1000;
     vector<string>test;
     vector<string>recv_list;
     test.reserve(connect_size*peer_send_size);
@@ -130,8 +130,11 @@ int main(int argc, char **argv) {
 
 //    ConfigManager::loadYamlFromDir("/home/cwj2001/cwj/myCppProject/config");
 
-    const char *ip = argv[1];
-    int port = atoi(argv[2]);
+//    const char *ip = argv[1];
+//    int port = atoi(argv[2]);
+
+    const char *ip = "192.168.23.134";
+    int port = 8035;
 
     IOManager::ptr iom(new IOManager(1,true,"client_test"));
 

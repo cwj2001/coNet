@@ -252,7 +252,10 @@ namespace CWJ_CO_NET{
     }
 
     int Socket::send(const void *buffer, size_t length, int flags) {
+        static long long count = 0;
         if(isConnect()){
+            count ++;
+            INFO_LOG(g_logger) <<"Socket::send:"<< count;
             return ::send(m_sock,buffer,length,flags);
         }
         return -1;
@@ -262,7 +265,7 @@ namespace CWJ_CO_NET{
         static int count = 0;
         if(isConnect()){
             count ++ ;
-            INFO_LOG(g_logger) <<"Socket::send:"<< count;
+            INFO_LOG(g_logger) <<"Socket::send:" << count << " " <<isConnect();
             msghdr msg;
             memset(&msg,0,sizeof (msghdr));
             msg.msg_iov = (iovec*)buffers;
@@ -362,6 +365,8 @@ namespace CWJ_CO_NET{
 
     bool Socket::setOption(int level, int optname, const void *optval, socklen_t optlen) {
 
+//        CWJ_ASSERT(optname != SO_REUSEADDR);
+
         if(setsockopt(m_sock,level,optname,optval,optlen)){
             WARN_LOG(g_logger)<<" Socket::setOption fail socket="
                               <<m_sock<<" level = "<<level<<" option="<<optname
@@ -425,6 +430,7 @@ namespace CWJ_CO_NET{
         int val = 1;
         // SO_REUSEADDR为了让处于time_wait的连接得到复用，需要始终该选项
         // ref: https://zhuanlan.zhihu.com/p/79999012
+
         setOption(SOL_SOCKET,SO_REUSEADDR,&val);
         // 禁用Nagle算法,减少小包的数量,让每条链接可同时有多个未确认的小包
         // ref: https://zhuanlan.zhihu.com/p/80104656

@@ -32,9 +32,12 @@ namespace CWJ_CO_NET {
             WRITE = EPOLLOUT,
         };
 
-        struct FdContext {
+        class FdContext {
+        public:
             using MutexType = Mutex;
             struct EventContext {
+                EventContext();
+
                 CallBack m_cb;
                 Coroutine::ptr m_co;
                 Scheduler::ptr m_scheduler;
@@ -42,7 +45,7 @@ namespace CWJ_CO_NET {
                 void reset();
             };
 
-            FdContext();
+            FdContext(const int fd);
 
             EventContext &getContextFromType(EventType type);
 
@@ -54,7 +57,7 @@ namespace CWJ_CO_NET {
 
             EventContext m_read_ev;
             EventContext m_write_ev;
-            int m_fd;
+            const int m_fd;
             EventType m_types;
             MutexType m_mutex;
         };
@@ -79,6 +82,8 @@ namespace CWJ_CO_NET {
         const std::atomic<size_t> &getMPendingEventCount() const;
 
         void beforeRunScheduler() override;
+
+
 
     public:
 

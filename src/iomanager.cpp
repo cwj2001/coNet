@@ -30,8 +30,9 @@ namespace CWJ_CO_NET {
 
 
         static uint64_t MAX_EVENTS = 256;
+        static uint64_t epoll_event_buf_size = MAX_EVENTS * sizeof (epoll_event);
         static std::shared_ptr<epoll_event> events(new epoll_event[MAX_EVENTS], [](auto &a) { delete[]a; });
-
+        memset(events.get(),0,epoll_event_buf_size);
         do {
             int len = 0;
             do {
@@ -60,8 +61,17 @@ namespace CWJ_CO_NET {
                     continue;
                 }
                 epoll_event &event = evs[i];
+                // TODO 可能会出现fd_context空指针
+                //(gdb) print evs[i]
+                //$4 = {events = 0, data = {ptr = 0x0, fd = 0, u32 = 0, u64 = 0}}
+
                 auto fd_context = (FdContext *) evs[i].data.ptr;
 
+                FdContext::MutexType::Lock lock(fd_context->m_mutex);
+
+                auto gdbtest = fd_context->m_types;
+                CWJ_ASSERT(fd_context);
+                std::cout<<"";
                 int real_event = ((EPOLLIN | EPOLLOUT) & event.events) & fd_context->m_types;
 
                 if (real_event == NONE) continue;
@@ -95,9 +105,12 @@ namespace CWJ_CO_NET {
                     --m_pending_event_count;
                 }
 
-                if (fd_context->m_types == NONE) fd_context->reset();
+//                if (fd_context->m_types == NONE) fd_context->reset();
 
             }
+
+            memset(events.get(),0,epoll_event_buf_size);
+
         }while(getTaskCount()<=0 && !isStop());
 
 
@@ -135,12 +148,15 @@ namespace CWJ_CO_NET {
 
         MutexType::RLock lock(m_mutex);
         if (!m_fd_contexts.count(fd)) {
-            m_fd_contexts[fd] = new FdContext;
-            m_fd_contexts[fd]->reset();
+            lock.unlock();
+            {
+                MutexType::WLock lock1(m_mutex);
+                m_fd_contexts[fd] = new FdContext(fd);
+                m_fd_contexts[fd]->reset();
+            }
         }
         auto &fd_ctx = m_fd_contexts[fd];
 
-        lock.unlock();
 
         FdContext::MutexType::Lock lock2(fd_ctx->m_mutex);
         int op = fd_ctx->m_types == NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
@@ -149,7 +165,6 @@ namespace CWJ_CO_NET {
         memset(&event, 0, sizeof(event));
         event.events = (fd_ctx->m_types | event_type) | EPOLLET;
         event.data.ptr = m_fd_contexts[fd];
-
 
         int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
         if (rt) {
@@ -160,7 +175,6 @@ namespace CWJ_CO_NET {
         }
 
         fd_ctx->m_types = EventType(fd_ctx->m_types | event_type);
-        fd_ctx->m_fd = fd;
         auto &ev_ctx = fd_ctx->getContextFromType(event_type);
         if(cb){
             ev_ctx.m_cb.swap(cb);
@@ -196,7 +210,6 @@ namespace CWJ_CO_NET {
         memset(&event, 0, sizeof(event));
         event.events = (fd_ctx->m_types & ~event_type) | EPOLLET;
         int op = event.events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-        event.data.fd = fd;
         event.data.ptr = fd_ctx;
         int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
         if (rt) {
@@ -208,7 +221,6 @@ namespace CWJ_CO_NET {
 
         --m_pending_event_count;
         fd_ctx->m_types = (EventType) (fd_ctx->m_types & ~event_type);
-        fd_ctx->m_fd = fd;
         if (event_type == READ) {
             fd_ctx->m_read_ev.reset();
         } else if (event_type == WRITE) {
@@ -218,13 +230,12 @@ namespace CWJ_CO_NET {
     }
 
     bool IOManager::cancelEvent(int fd, IOManager::EventType event_type) {
-        MutexType::RLock lock(m_mutex);
+        MutexType::WLock lock(m_mutex);
         if (!m_fd_contexts.count(fd)) {
             return false;
         }
 
         auto &fd_ctx = m_fd_contexts[fd];
-        lock.unlock();
 
         FdContext::MutexType::Lock lock2(fd_ctx->m_mutex);
 
@@ -234,7 +245,6 @@ namespace CWJ_CO_NET {
         memset(&event, 0, sizeof(event));
         event.events = (fd_ctx->m_types & ~event_type) | EPOLLET;
         int op = event.events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-        event.data.fd = fd;
         event.data.ptr = fd_ctx;
         int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
         if (rt) {
@@ -246,7 +256,6 @@ namespace CWJ_CO_NET {
 
         --m_pending_event_count;
         fd_ctx->m_types = (EventType)(fd_ctx->m_types & ~event_type);
-        fd_ctx->m_fd = fd;
         if (event_type == READ) {
             fd_ctx->triggerEvent(event_type);
             fd_ctx->m_read_ev.reset();
@@ -276,7 +285,6 @@ namespace CWJ_CO_NET {
         memset(&event, 0, sizeof(event));
         event.events = NONE;
         int op = EPOLL_CTL_DEL;
-        event.data.fd = fd;
         event.data.ptr = fd_ctx;
         int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
         if (rt) {
@@ -316,7 +324,7 @@ namespace CWJ_CO_NET {
     }
 
 
-    IOManager::FdContext::FdContext() {
+    IOManager::FdContext::FdContext(const int fd) : m_fd(fd) {
         this->reset();
     }
 
@@ -335,7 +343,6 @@ namespace CWJ_CO_NET {
     }
 
     void IOManager::FdContext::reset() {
-        this->m_fd = -1;
         this->m_types = NONE;
         this->m_read_ev.reset();
         this->m_write_ev.reset();
@@ -371,5 +378,8 @@ namespace CWJ_CO_NET {
         this->m_co.reset();
         this->m_scheduler.reset();
         this->m_cb = nullptr;
+    }
+
+    IOManager::FdContext::EventContext::EventContext() {
     }
 }

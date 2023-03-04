@@ -24,16 +24,7 @@ namespace CWJ_CO_NET{
 
                 INFO_LOG(g_logger) << "resv : ";
                 req.first->dump(std::cout);
-                std::cout<<"";
-                INFO_LOG(g_logger) << "headr connect:" << t->getHeader("connection")<<std::endl;
 
-                auto Map = req.first->getHeaders();
-
-                for(auto& a : Map){
-                    INFO_LOG(g_logger) << "key:"<<a.first<<" val: "<<a.second;
-                }
-
-                INFO_LOG(g_logger) <<t->getHeader("connection","keep-alive")<<std::endl;
 
                 HttpResponse::ptr resp = std::make_shared<HttpResponse>(req.first->getVersion(),!keepalive);
                 resp->setHeader("server","cwj_co_net");
@@ -41,6 +32,7 @@ namespace CWJ_CO_NET{
                 if(t->getHeader("connection","keep-alive") == "close"){
                     keepalive = false;
                     resp->setHeader("connection","close");
+                    resp->setClose(true);
                 }
 
 

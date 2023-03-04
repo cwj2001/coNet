@@ -22,3 +22,7 @@
 8. socket连接时，read/recv会感知得到收到-1,并且置errno，send会触发SIGPIPE信号，若忽略该信号，则返回-1，并且置errno;
 ![img.png](img.png)
    
+9. epoll_event中的data字段是共同体，不能既使用data.fd也使用data.ptr
+10. 且在处理每个Fdcontext时需要加对应的锁，避免多线程修改
+11. 加解锁的顺序问题（不一定需要）
+    ![img_1.png](img_1.png)
