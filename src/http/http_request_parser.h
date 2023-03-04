@@ -21,7 +21,7 @@ namespace CWJ_CO_NET { namespace http{
 
 
         std::pair<HttpRequest::ptr,bool> getNextData(){
-            if(!m_finish)   return {nullptr,true};
+            if(m_finish <= 0)   return {nullptr,false};
             auto t = m_req_que.front();
             m_req_que.pop();
             m_finish -= 1;

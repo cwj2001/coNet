@@ -22,7 +22,7 @@ namespace CWJ_CO_NET{
 
             HttpSession(const Socket::ptr &sock,bool is_owner = true,int buf_size = 1024);
 
-            // int 0 无错误，1 错误
+            // bool 是否成功
             std::pair<HttpRequest::ptr,bool> recvRequest();
 
             // 返回值发送字节数：>0 正常 =0 关闭 <= sock

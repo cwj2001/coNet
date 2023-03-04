@@ -39,13 +39,13 @@ namespace CWJ_CO_NET {
         }
 
         void HttpRequestParser::initData(HttpRequestParser *t) {
-            t->m_req_que.push({std::make_shared<HttpRequest>(0x11,false),0});
+            t->m_req_que.push({std::make_shared<HttpRequest>(0x11,false),false});
             t->m_last_key = "";
         }
 
         int HttpRequestParser::on_headers_complete(http_parser* _) {
             (void)_;
-            printf("\n***HEADERS COMPLETE***\n\n");
+            INFO_LOG(g_logger)<<"\n***HEADERS COMPLETE***\n";
             return 0;
         }
 
@@ -63,10 +63,13 @@ namespace CWJ_CO_NET {
 
         int HttpRequestParser::on_message_complete(http_parser* parser) {
             HttpRequestParser* self = (HttpRequestParser*)parser->data;
-            auto req = self->m_req_que.back();
+            auto& req = self->m_req_que.back();
             self->m_finish ++ ;
-            req.second = parser->http_errno;
+            DEBUG_LOG(g_logger) << "parser->http_errno:" <<parser->http_errno;
+            req.second = !parser->http_errno;
+            DEBUG_LOG(g_logger) << "on_message_complete: req.second:" <<req.second;
             req.first->setMethod(HttpMethod(parser->method));
+            DEBUG_LOG(g_logger) << "on_message_complete: que.back.second:" <<self->m_req_que.back().second;
             return 0;
         }
 
@@ -83,7 +86,7 @@ namespace CWJ_CO_NET {
         }
 
         int HttpRequestParser::on_body(http_parser* parser, const char* at, size_t length) {
-            printf("Body: %.*s\n", (int)length, at);
+            INFO_LOG(g_logger)<<("Body: %.*s\n", (int)length, at);
             auto t = (HttpRequestParser*)parser->data;
             t->m_req_que.back().first->setBody(std::string(at,length));
             return 0;
@@ -91,13 +94,13 @@ namespace CWJ_CO_NET {
 
         int HttpRequestParser::on_chunk_header(http_parser* _) {
             (void)_;
-            printf("\n***CHUNK HEADER***\n\n");
+            INFO_LOG(g_logger)<<("\n***CHUNK HEADER***\n\n");
             return 0;
         }
 
         int HttpRequestParser::on_chunk_complete(http_parser* _) {
             (void)_;
-            printf("\n***CHUNK COMPLETE***\n\n");
+            INFO_LOG(g_logger)<<("\n***CHUNK COMPLETE***\n\n");
             return 0;
         }
 

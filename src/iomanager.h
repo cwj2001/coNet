@@ -55,8 +55,18 @@ namespace CWJ_CO_NET {
             // 触发事件
             bool triggerEvent(EventType type);
 
+            const EventContext &getMReadEv() const;
+
+            void setMReadEv(const EventContext &mReadEv);
+
+            const EventContext &getMWriteEv() const;
+
+            void setMWriteEv(const EventContext &mWriteEv);
+
+        private:
             EventContext m_read_ev;
             EventContext m_write_ev;
+        public:
             const int m_fd;
             EventType m_types;
             MutexType m_mutex;
@@ -83,6 +93,8 @@ namespace CWJ_CO_NET {
 
         void beforeRunScheduler() override;
 
+        void afterRunScheduler() override;
+
 
 
     public:
@@ -95,6 +107,7 @@ namespace CWJ_CO_NET {
 
 
     private:
+
         int m_epoll_fd = -1;
         int m_wakeup_fd = -1;
         MutexType m_mutex;

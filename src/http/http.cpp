@@ -93,13 +93,7 @@ namespace CWJ_CO_NET {
             std::string s = key;
             std::transform(s.begin(),s.end(),s.begin(),::tolower);
 
-            if(s == "connection"){
-                INFO_LOG(g_logger) <<"connection s:"<<s<<" val: "<<val;
-//                CWJ_ASSERT(false);
-            }
-
             m_headers[key] = val;
-            std::cout<<key<<"========="<<s<<std::endl;
 
         }
 

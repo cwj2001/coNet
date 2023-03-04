@@ -22,7 +22,7 @@ namespace CWJ_CO_NET {
 
 
             std::pair<HttpResponse::ptr,bool>getNextData(){
-                if(!m_finish)   return {nullptr,true};
+                if(!m_finish)   return {nullptr,false};
                 auto t = m_resp_que.front();
                 m_resp_que.pop();
                 m_finish -= 1;

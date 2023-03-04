@@ -16,6 +16,9 @@ namespace CWJ_CO_NET {
 
     static auto g_logger = GET_LOGGER("system");
 
+    thread_local int thread_epoll_fd = -1;
+
+
 
     void IOManager::wake() {
         if (m_idle_thread_count <= 0) return;
@@ -29,9 +32,10 @@ namespace CWJ_CO_NET {
     void IOManager::idle() {
 
 
-        static uint64_t MAX_EVENTS = 256;
-        static uint64_t epoll_event_buf_size = MAX_EVENTS * sizeof (epoll_event);
-        static std::shared_ptr<epoll_event> events(new epoll_event[MAX_EVENTS], [](auto &a) { delete[]a; });
+        // TODO 注意：在这里用static会导致多线程去共有一个缓冲区，导致其出现数据冲突
+         uint64_t MAX_EVENTS = 256;
+         uint64_t epoll_event_buf_size = MAX_EVENTS * sizeof (epoll_event);
+         std::shared_ptr<epoll_event> events(new epoll_event[MAX_EVENTS], [](auto &a) { delete[]a; });
         memset(events.get(),0,epoll_event_buf_size);
         do {
             int len = 0;
@@ -39,9 +43,10 @@ namespace CWJ_CO_NET {
                 static uint64_t  MAX_TIMEOUT = 30000ul;
                 uint64_t ms = getNextTimer();
                 ms = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
-                len = epoll_wait(m_epoll_fd, events.get(), MAX_EVENTS, ms);
-                if (len >0 || (len == 0 && EFAULT)) break;
-                else{
+                len = epoll_wait(thread_epoll_fd, events.get(), MAX_EVENTS, ms);
+                if (len >0 || (len == 0 && errno == EFAULT)) break;
+                // 忽略该信号，因为gdb调试时总是会触发该信号
+                else if(errno != EINTR){
                     ERROR_LOG(g_logger) << "epoll_wait error ,errno="<<errno<<" strerror="<<strerror(errno);
                 }
             } while (true);
@@ -61,8 +66,8 @@ namespace CWJ_CO_NET {
                     continue;
                 }
                 epoll_event &event = evs[i];
-                // TODO 可能会出现fd_context空指针
-                //(gdb) print evs[i]
+                // TODO epoll_wait成功返回，但是可能出现epoll_event无效，可能会出现fd_context空指针
+                //(gdb) print evs[i] ,len = 2
                 //$4 = {events = 0, data = {ptr = 0x0, fd = 0, u32 = 0, u64 = 0}}
 
                 auto fd_context = (FdContext *) evs[i].data.ptr;
@@ -81,11 +86,11 @@ namespace CWJ_CO_NET {
                 fd_context->m_types = (EventType) (fd_context->m_types & ~(real_event));
                 event.events = fd_context->m_types | EPOLLET;
                 int op = fd_context->m_types == NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
-                int rt = epoll_ctl(m_epoll_fd, op, fd_context->m_fd, &event);
+                int rt = epoll_ctl(thread_epoll_fd, op, fd_context->m_fd, &event);
 
                 // 要是操作不超过，那么就不执行任务；
                 if (rt) {
-                    ERROR_LOG(g_logger) << "epoll_ctl(" << m_epoll_fd << ", "
+                    ERROR_LOG(g_logger) << "epoll_ctl(" << thread_epoll_fd << ", "
                                         << op << ", " << fd_context->m_fd << ", " << (EPOLL_EVENTS) evs[i].events
                                         << "):"
                                         << rt << " (" << errno << ") (" << strerror(errno) << ")";
@@ -134,6 +139,9 @@ namespace CWJ_CO_NET {
             ERROR_LOG(g_logger) << "epoll add wakeup_fd error ,errno=" << errno << " str(errno)= " << strerror(errno);
             CWJ_ASSERT(false);
         }
+
+        ERROR_LOG(g_logger) <<"thread_epoll_fd:"<< m_epoll_fd;
+
     }
 
     IOManager::~IOManager() {
@@ -163,10 +171,10 @@ namespace CWJ_CO_NET {
 
         epoll_event event;
         memset(&event, 0, sizeof(event));
-        event.events = (fd_ctx->m_types | event_type) | EPOLLET;
+        event.events = (fd_ctx->m_types | event_type) | EPOLLET | EPOLLONESHOT;
         event.data.ptr = m_fd_contexts[fd];
 
-        int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
+        int rt = epoll_ctl(thread_epoll_fd, op, fd, &event);
         if (rt) {
             ERROR_LOG(g_logger) << "addEvent(fd=" << fd << " event_type="
                                 << event_type << ") epoll_ctl error ,errno=" << errno
@@ -186,7 +194,6 @@ namespace CWJ_CO_NET {
 
         ++m_pending_event_count;
 
-//        INFO_LOG(g_logger)<<" event.data.fd="<< ((FdContext*)event.data.ptr)->m_fd << "fd = "<<fd;
 
 
         return true;
@@ -211,7 +218,7 @@ namespace CWJ_CO_NET {
         event.events = (fd_ctx->m_types & ~event_type) | EPOLLET;
         int op = event.events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
         event.data.ptr = fd_ctx;
-        int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
+        int rt = epoll_ctl(thread_epoll_fd, op, fd, &event);
         if (rt) {
             ERROR_LOG(g_logger) << "addEvent(fd=" << fd << " event_type="
                                 << event_type << ") epoll_ctl error ,errno=" << errno
@@ -222,9 +229,12 @@ namespace CWJ_CO_NET {
         --m_pending_event_count;
         fd_ctx->m_types = (EventType) (fd_ctx->m_types & ~event_type);
         if (event_type == READ) {
-            fd_ctx->m_read_ev.reset();
+            // TODO 这里可以优化
+//            fd_ctx->m_read_ev.reset();
+              fd_ctx->setMReadEv(FdContext::EventContext());
         } else if (event_type == WRITE) {
-            fd_ctx->m_write_ev.reset();
+//            fd_ctx->m_write_ev.reset();
+            fd_ctx->setMWriteEv(FdContext::EventContext());
         }
         return true;
     }
@@ -246,7 +256,7 @@ namespace CWJ_CO_NET {
         event.events = (fd_ctx->m_types & ~event_type) | EPOLLET;
         int op = event.events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
         event.data.ptr = fd_ctx;
-        int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
+        int rt = epoll_ctl(thread_epoll_fd, op, fd, &event);
         if (rt) {
             ERROR_LOG(g_logger) << "cancelEvent(fd=" << fd << " event_type="
                                 << event_type << ") epoll_ctl error ,errno=" << errno
@@ -258,11 +268,13 @@ namespace CWJ_CO_NET {
         fd_ctx->m_types = (EventType)(fd_ctx->m_types & ~event_type);
         if (event_type == READ) {
             fd_ctx->triggerEvent(event_type);
-            fd_ctx->m_read_ev.reset();
+//            fd_ctx->m_read_ev.reset();
+            fd_ctx->setMReadEv(FdContext::EventContext());
             INFO_LOG(g_logger) << "sock="<<fd<<" cancel read ";
         } else if (event_type == WRITE) {
             fd_ctx->triggerEvent(event_type);
-            fd_ctx->m_write_ev.reset();
+//            fd_ctx->m_write_ev.reset();
+            fd_ctx->setMWriteEv(FdContext::EventContext());
             INFO_LOG(g_logger) << "sock="<<fd<<" cancel write ";
         }
         return true;
@@ -286,7 +298,7 @@ namespace CWJ_CO_NET {
         event.events = NONE;
         int op = EPOLL_CTL_DEL;
         event.data.ptr = fd_ctx;
-        int rt = epoll_ctl(m_epoll_fd, op, fd, &event);
+        int rt = epoll_ctl(thread_epoll_fd, op, fd, &event);
         if (rt) {
             ERROR_LOG(g_logger) << "cancelEvent(fd=" << fd << " event_type="
                                 << NONE << ") epoll_ctl error ,errno=" << errno
@@ -321,6 +333,12 @@ namespace CWJ_CO_NET {
 
     void IOManager::beforeRunScheduler() {
         SetHookEnable(true);
+        thread_epoll_fd = dup(m_epoll_fd);
+        ERROR_LOG(g_logger) <<"thread_epoll_fd:"<< thread_epoll_fd ;
+    }
+
+    void IOManager::afterRunScheduler() {
+        close(thread_epoll_fd);
     }
 
 
@@ -361,6 +379,7 @@ namespace CWJ_CO_NET {
         if (ctx.m_co) {
             if(ctx.m_co->getMState() != CoState::State::HOLD) {
                 ERROR_LOG(g_logger) << "ctx.m_co.state="<<ctx.m_co->getMState()<<" "<<ctx.m_co->getMId();
+                // TODO 这里是否可以出现HOLD状态的协程
                 CWJ_ASSERT(ctx.m_co->getMState() == CoState::State::HOLD);
             }
 //            INFO_LOG(g_logger) << " FdContext::triggerEvent(EventType type) trigger="<<ctx.m_co->getMId();
@@ -372,6 +391,28 @@ namespace CWJ_CO_NET {
             CWJ_ASSERT(false);
         }
         return true;
+    }
+
+    const IOManager::FdContext::EventContext &IOManager::FdContext::getMReadEv() const {
+        return m_read_ev;
+    }
+
+    void IOManager::FdContext::setMReadEv(const IOManager::FdContext::EventContext &mReadEv) {
+        if(mReadEv.m_co){
+            CWJ_ASSERT(mReadEv.m_co->getMState() == CoState::State::HOLD);
+        }
+        m_read_ev = mReadEv;
+    }
+
+    const IOManager::FdContext::EventContext &IOManager::FdContext::getMWriteEv() const {
+        return m_write_ev;
+    }
+
+    void IOManager::FdContext::setMWriteEv(const IOManager::FdContext::EventContext &mWriteEv) {
+        if(mWriteEv.m_co){
+            CWJ_ASSERT(mWriteEv.m_co->getMState() == CoState::State::HOLD);
+        }
+        m_write_ev = mWriteEv;
     }
 
     void IOManager::FdContext::EventContext::reset() {

@@ -22,8 +22,10 @@ namespace CWJ_CO_NET{
                 auto t = req.first;
                 CWJ_ASSERT(req.first);
 
-                INFO_LOG(g_logger) << "resv : ";
-                req.first->dump(std::cout);
+                std::stringstream ss;
+                req.first->dump(ss);
+                INFO_LOG(g_logger) << "resv : " << ss.str();
+
 
 
                 HttpResponse::ptr resp = std::make_shared<HttpResponse>(req.first->getVersion(),!keepalive);
@@ -37,25 +39,28 @@ namespace CWJ_CO_NET{
 
 
 
-
-                if(req.second || !req.first)  {
+                if(!req.second || !req.first)  {
                     recv_error(req.first,resp);
                     sock->close();
-//                    continue;
+                    continue;
                 }
-                else m_dispatch.handle(req.first,resp);
+                else {
+                    m_dispatch.handle(req.first,resp);
 
-                INFO_LOG(g_logger) << "send : ";
-                resp->dump(std::cout);
+                    ss.clear();
+                    resp->dump(ss);
+                    INFO_LOG(g_logger) << "send : "<<ss.str();
 
-                session->sendResponse(resp);
+                    if(session->sendResponse(resp) <= 0)    sock->close();
+                }
+
             }
 
             // 套接字关闭前的回调
             sock->close();
             uint64_t u = 2;
             write(m_accept_error_wake_fd,&u,sizeof(uint64_t));
-            INFO_LOG(g_logger) << "sock: "<<sock->getSocket()<<" close ";
+//            INFO_LOG(g_logger) << "sock: "<<sock->getSocket()<<" close ";
 
         }
 

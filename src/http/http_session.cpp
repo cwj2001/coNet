@@ -26,12 +26,16 @@ namespace CWJ_CO_NET{
                 m_buf.getWriteBuffers(buffers,m_pre_buf_size,false);
                 auto offset = m_sock->recv(&buffers[0],buffers.size());
 
-                if(offset<=0)   return {std::make_shared<HttpRequest>(),true};
+                if(offset<=0) {
+//                    CWJ_ASSERT(false);
+                    return {std::make_shared<HttpRequest>(),false};
+                };
                 buffers.clear();
                 m_buf.getWriteBuffers(buffers,offset,false);
                 for(auto& a : buffers)  m_req_parser.execute((char*)a.iov_base,a.iov_len);
                 m_buf.updateNullWrite(offset);
             };
+//            CWJ_ASSERT(false);
             return m_req_parser.getNextData();
         }
 

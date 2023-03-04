@@ -33,7 +33,7 @@ namespace CWJ_CO_NET {
         }
 
         int HttpResponseParser::on_message_begin(http_parser* parser) {
-            printf("******** message_begin ********");
+            INFO_LOG(g_logger)<<("******** message_begin ********");
             auto t = (HttpResponseParser*)parser->data;
             initData(t);
             return 0;
@@ -47,7 +47,7 @@ namespace CWJ_CO_NET {
 
         int HttpResponseParser::on_headers_complete(http_parser* _) {
             (void)_;
-            printf("\n***HEADERS COMPLETE***\n\n");
+            INFO_LOG(g_logger)<<("\n***HEADERS COMPLETE***\n\n");
             return 0;
         }
 
@@ -74,11 +74,11 @@ namespace CWJ_CO_NET {
 #undef XX
 
         int HttpResponseParser::on_message_complete(http_parser* parser) {
-            printf("******** message_complete ********");
+            INFO_LOG(g_logger)<<("******** message_complete ********");
             HttpResponseParser* self = (HttpResponseParser*)parser->data;
             auto t = self->m_resp_que.back();
             self->m_finish ++;
-            t.second = parser->http_errno;
+            t.second = parser->http_errno ? false : true;
             return 0;
         }
 
@@ -103,13 +103,13 @@ namespace CWJ_CO_NET {
 
         int HttpResponseParser::on_chunk_header(http_parser* _) {
             (void)_;
-            printf("\n***CHUNK HEADER***\n\n");
+            DEBUG_LOG(g_logger)<<("\n***CHUNK HEADER***\n\n");
             return 0;
         }
 
         int HttpResponseParser::on_chunk_complete(http_parser* _) {
             (void)_;
-            printf("\n***CHUNK COMPLETE***\n\n");
+            DEBUG_LOG(g_logger)<<("\n***CHUNK COMPLETE***\n\n");
             return 0;
         }
 
