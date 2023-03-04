@@ -11,6 +11,8 @@
 #include "socket.h"
 #include "config.h"
 
+//#include "newoperator.h"
+
 using namespace std;
 using namespace CWJ_CO_NET;
 using namespace CWJ_CO_NET::http;

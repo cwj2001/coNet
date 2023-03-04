@@ -181,5 +181,6 @@ namespace CWJ_CO_NET {
                                                                                    m_thread_id(mThreadId) {}
 
     Scheduler::CoOrFunc::CoOrFunc() {}
+
 }
 
