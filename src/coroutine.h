@@ -51,6 +51,8 @@ namespace CWJ_CO_NET {
 
         void setMState(CoState::State mState);
 
+        void reset(CallBack cb,size_t stack_size = 0,bool use_scheduler = false);
+
 
     private:
 

@@ -66,6 +66,36 @@ namespace CWJ_CO_NET {
 
     }
 
+    void  Coroutine::reset(CallBack cb,size_t stack_size,bool use_scheduler){
+
+        // 处理上下文
+        m_state = CoState::INIT;
+        m_cb = cb;
+        if (getcontext(&m_ctx)) {
+            CWJ_ASSERT_MGS(false, "Coroutine::Coroutine(Coroutine::CallBack, size_t, bool)  getcontext fail");
+        }
+
+        // 处理stack
+
+        if(stack_size > 0 && (stack_size > m_stack_size)){
+            Allocator::Dealloc(m_stack,m_stack_size);
+            m_stack_size = stack_size;
+            m_stack = Allocator::Alloc(m_stack_size);
+        }
+
+        m_ctx.uc_stack.ss_sp = m_stack;
+        m_ctx.uc_stack.ss_size = m_stack_size;
+        m_ctx.uc_stack.ss_flags = 0;
+
+        makecontext(&m_ctx, &Coroutine::Run, 0);
+        INFO_LOG(g_logger) << "co :" << m_id << " reused ";
+
+        // 处理use
+
+        m_use_scheduler = use_scheduler;
+
+    }
+
 
     void Coroutine::call() {
 
