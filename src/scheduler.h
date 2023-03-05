@@ -36,7 +36,7 @@ namespace CWJ_CO_NET {
         using CallBack = Coroutine::CallBack;
         using MutexType = Mutex;
 
-        Scheduler(size_t size, bool use_cur_thread = false, std::string name = "schedule",bool use_co_pool = false
+        Scheduler(size_t size, bool use_cur_thread = false, std::string name = "schedule",bool use_co_pool = true
                 );
 
         virtual ~Scheduler();

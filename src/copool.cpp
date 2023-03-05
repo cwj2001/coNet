@@ -13,7 +13,7 @@ namespace CWJ_CO_NET{
     static auto g_logger = GET_LOGGER("system");
     static thread_local std::queue<Coroutine::ptr> t_co_que;
     static const int THREAD_MAX_CO = 512;
-    static const int CENTER_MAX_CO = 0;
+    static const int CENTER_MAX_CO = 1024;
     static auto g_thread_max_co = GET_CONFIG_MGR()->lookup<int>("copool.thread_max_co",THREAD_MAX_CO,"thread_max_co");
     static auto g_center_max_co = GET_CONFIG_MGR()->lookup<int>("copool.center_max_co",CENTER_MAX_CO,"center_max_co");
 
