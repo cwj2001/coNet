@@ -36,7 +36,8 @@ namespace CWJ_CO_NET {
         using CallBack = Coroutine::CallBack;
         using MutexType = Mutex;
 
-        Scheduler(size_t size, bool use_cur_thread = false, std::string name = "schedule");
+        Scheduler(size_t size, bool use_cur_thread = false, std::string name = "schedule",bool use_co_pool = false
+                );
 
         virtual ~Scheduler();
 
@@ -57,9 +58,6 @@ namespace CWJ_CO_NET {
         template<typename T>
         void schedule(const T & t,int thread_id){
             CoOrFunc task(t,thread_id);
-//            if(task.m_co) {
-//                INFO_LOG(GET_LOGGER("system")) << "schedule("<<task.m_co->m_id<<")";
-//            }
             if(task.m_co || task.m_cb){
                 {
                     MutexType::Lock lock(m_mutex);
@@ -124,6 +122,7 @@ namespace CWJ_CO_NET {
 
         // 是否将当前线程也设置为调度线程
         bool m_use_cur_thread = false;
+        bool m_use_co_pool = true;
         std::atomic<bool> m_started{false};
         std::atomic<bool> m_stopping{false}; // 用来标识调度器外部是否被停止了
         MutexType m_mutex;

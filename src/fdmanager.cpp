@@ -63,7 +63,7 @@ namespace CWJ_CO_NET{
             if(auto_create){
                 lock.unlock();
                 MutexType::WLock  lock2(m_mutex);
-                m_fds[fd] = std::make_shared<FdCtx>(fd);
+                if(!m_fds.count(fd))m_fds[fd] = std::make_shared<FdCtx>(fd);
             }else{
                 return nullptr;
             }
@@ -76,8 +76,9 @@ namespace CWJ_CO_NET{
 
         MutexType::RLock lock(m_mutex);
         if(!m_fds.count(fd))    return false;
-
         lock.unlock();
+
+        MutexType::WLock  lock1(m_mutex);
 
         m_fds.erase(fd);
 

@@ -5,6 +5,7 @@
 #include "coroutine.h"
 #include "macro.h"
 #include "log.h"
+#include "copool.h"
 
 namespace CWJ_CO_NET {
 
@@ -12,8 +13,8 @@ namespace CWJ_CO_NET {
     static thread_local Scheduler::ptr g_scheduler = nullptr;
     static thread_local Coroutine::ptr g_scheduler_co = nullptr; // 每个线程的用于调度的主协程
 
-    Scheduler::Scheduler(size_t size, bool use_cur_thread, std::string name)
-            : m_thread_count(size), m_use_cur_thread(use_cur_thread), m_name(name) {
+    Scheduler::Scheduler(size_t size, bool use_cur_thread, std::string name,bool use_co_pool)
+            : m_name(name),m_thread_count(size),m_use_cur_thread(use_cur_thread),m_use_co_pool(use_co_pool) {
 
         Thread::SetName(m_name + "_thread");
         if (m_use_cur_thread) m_thread_count--;
@@ -81,14 +82,28 @@ namespace CWJ_CO_NET {
             }
             if (has_task) {
                 if (!task.m_co && task.m_cb) {
-                    task.m_co.reset(new Coroutine(task.m_cb, 0, true));
+                    // TODO 未测试
+                    if(m_use_co_pool){
+                        task.m_co = CoPoolMgr::GetInstance()->allocCo(task.m_cb, 0, true);
+                    }// 下面分支已经完成测试
+                    else task.m_co.reset(new Coroutine(task.m_cb, 0, true));
                 }
                 task.m_co->call();
+                --m_active_thread_count;
+
                 if (task.m_co->m_state == CoState::READY) {
                     schedule(task.m_co, task.m_thread_id);
+                }else if(task.m_co->m_state == CoState::HOLD){
+
+                }else if(task.m_co->m_state == CoState::TERM || task.m_co->m_state == CoState::EXCEPT){
+                    if(m_use_co_pool)   {
+//                        CWJ_ASSERT(false);
+                        CoPoolMgr ::GetInstance()->deallocCo(task.m_co);
+                    }
                 }
-                --m_active_thread_count;
+
                 task.reset();
+
             } else if (m_stopping || m_auto_stop) {
 
                 break;
@@ -101,7 +116,6 @@ namespace CWJ_CO_NET {
         }
 
         afterRunScheduler();
-        INFO_LOG(g_logger) << "scheduler run end";
 
     }
 

@@ -65,11 +65,8 @@ namespace CWJ_CO_NET {
             HttpRequestParser* self = (HttpRequestParser*)parser->data;
             auto& req = self->m_req_que.back();
             self->m_finish ++ ;
-            DEBUG_LOG(g_logger) << "parser->http_errno:" <<parser->http_errno;
             req.second = !parser->http_errno;
-            DEBUG_LOG(g_logger) << "on_message_complete: req.second:" <<req.second;
             req.first->setMethod(HttpMethod(parser->method));
-            DEBUG_LOG(g_logger) << "on_message_complete: que.back.second:" <<self->m_req_que.back().second;
             return 0;
         }
 

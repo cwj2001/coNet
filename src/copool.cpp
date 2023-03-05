@@ -6,19 +6,18 @@
 #include <algorithm>
 #include "config.h"
 #include "copool.h"
-
+#include "log.h"
+#include "macro.h"
 namespace CWJ_CO_NET{
 
+    static auto g_logger = GET_LOGGER("system");
     static thread_local std::queue<Coroutine::ptr> t_co_que;
-    static const int THREAD_MAX_CO = 16;
-    static const int CENTER_MAX_CO = 32;
+    static const int THREAD_MAX_CO = 512;
+    static const int CENTER_MAX_CO = 0;
     static auto g_thread_max_co = GET_CONFIG_MGR()->lookup<int>("copool.thread_max_co",THREAD_MAX_CO,"thread_max_co");
     static auto g_center_max_co = GET_CONFIG_MGR()->lookup<int>("copool.center_max_co",CENTER_MAX_CO,"center_max_co");
 
     static int init_t = [](){
-
-        if(g_thread_max_co->getMVal() <= 0) g_thread_max_co->setMVal(THREAD_MAX_CO);
-        if(g_center_max_co->getMVal() <= 0) g_center_max_co->setMVal(CENTER_MAX_CO);
 
         int key = 0x1234;
 
@@ -34,6 +33,10 @@ namespace CWJ_CO_NET{
             pool->setMThreadMaxCo(newVal);
         });
 
+        auto pool = CoPoolMgr ::GetInstance();
+        pool->setMCenterMaxCo(CENTER_MAX_CO);
+        pool->setMThreadMaxCo(THREAD_MAX_CO);
+
         return 0;
     }();
 
@@ -45,18 +48,22 @@ namespace CWJ_CO_NET{
             auto c = t_co_que.front();
             t_co_que.pop();
             c->reset(cb,stack_size,use_scheduler);
+//            CWJ_ASSERT(false);
             return c;
         }
 
         // 共享空间
 
-        while(m_co_center_size > 0){
+        if(m_co_center_size > 0){
             MutexType::Lock lock(m_mutex);
-            if(m_co_center_size <= 0)   continue;
-            auto c = m_co_center.front();
-            m_co_center.pop();
-            c->reset(cb,stack_size,use_scheduler);
-            return c;
+            if(m_co_center_size > 0)   {
+                auto c = m_co_center.front();
+                m_co_center.pop();
+                m_co_center_size -= 1;
+                c->reset(cb,stack_size,use_scheduler);
+                return c;
+            }
+
         }
 
 
@@ -75,11 +82,13 @@ namespace CWJ_CO_NET{
             return ;
         }
 
-        while(m_center_max_co>m_co_center.size()){
+        if(m_center_max_co>m_co_center.size()){
             MutexType::Lock lock(m_mutex);
-            if(m_thread_max_co<=m_co_center.size()) continue;
-            m_co_center.push(co);
-            return ;
+            if(m_thread_max_co>m_co_center.size()) {
+                m_co_center.push(co);
+                m_co_center_size += 1;
+                return ;
+            }
         }
 
         co.reset();

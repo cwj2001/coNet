@@ -78,6 +78,7 @@ namespace CWJ_CO_NET {
         // 处理stack
 
         if(stack_size > 0 && (stack_size > m_stack_size)){
+            ERROR_LOG(g_logger) << "alloc stack ";
             Allocator::Dealloc(m_stack,m_stack_size);
             m_stack_size = stack_size;
             m_stack = Allocator::Alloc(m_stack_size);
@@ -167,10 +168,7 @@ namespace CWJ_CO_NET {
             cur_co->m_state = CoState::TERM;
         } catch (std::exception &e) {
             cur_co->m_state = CoState::EXCEPT;
-            ERROR_LOG(g_logger) << "Coroutine::run() fail" << BacktraceToStr();
         }
-
-        INFO_LOG(g_logger) << "can reash run finish";
 
         auto p = cur_co.get();
         cur_co.reset();
@@ -206,7 +204,6 @@ namespace CWJ_CO_NET {
 
 //        CWJ_ASSERT(m_use_scheduler);
         if (m_stack) {
-            INFO_LOG(g_logger)<<m_state;
             CWJ_ASSERT(m_state == CoState::EXCEPT || m_state == CoState::TERM || m_state == CoState::INIT);
             Allocator::Dealloc(m_stack, m_stack_size);
         } else {
@@ -214,7 +211,7 @@ namespace CWJ_CO_NET {
             CWJ_ASSERT(m_state == CoState::EXEC);
 
         }
-        INFO_LOG(g_logger) << "Coroutine::~Coroutine() ";
+//        INFO_LOG(g_logger) << "Coroutine::~Coroutine() ";
     }
 
     void Coroutine::YieldToHold() {

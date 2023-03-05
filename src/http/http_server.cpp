@@ -22,11 +22,9 @@ namespace CWJ_CO_NET{
                 auto t = req.first;
                 CWJ_ASSERT(req.first);
 
-                std::stringstream ss;
-                req.first->dump(ss);
-                INFO_LOG(g_logger) << "resv : " << ss.str();
-
-
+//                std::stringstream ss;
+//                req.first->dump(ss);
+//                INFO_LOG(g_logger) << "resv : " << ss.str();
 
                 HttpResponse::ptr resp = std::make_shared<HttpResponse>(req.first->getVersion(),!keepalive);
                 resp->setHeader("server","cwj_co_net");
@@ -37,7 +35,7 @@ namespace CWJ_CO_NET{
                     resp->setClose(true);
                 }
 
-
+//                resp->setClose(true);
 
                 if(!req.second || !req.first)  {
                     recv_error(req.first,resp);
@@ -47,9 +45,9 @@ namespace CWJ_CO_NET{
                 else {
                     m_dispatch.handle(req.first,resp);
 
-                    ss.clear();
-                    resp->dump(ss);
-                    INFO_LOG(g_logger) << "send : "<<ss.str();
+//                    ss.clear();
+//                    resp->dump(ss);
+//                    INFO_LOG(g_logger) << "send : "<<ss.str();
 
                     if(session->sendResponse(resp) <= 0)    sock->close();
                 }

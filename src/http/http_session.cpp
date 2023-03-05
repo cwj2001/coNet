@@ -27,7 +27,6 @@ namespace CWJ_CO_NET{
                 auto offset = m_sock->recv(&buffers[0],buffers.size());
 
                 if(offset<=0) {
-//                    CWJ_ASSERT(false);
                     return {std::make_shared<HttpRequest>(),false};
                 };
                 buffers.clear();

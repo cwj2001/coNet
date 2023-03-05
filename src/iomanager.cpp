@@ -334,7 +334,6 @@ namespace CWJ_CO_NET {
     void IOManager::beforeRunScheduler() {
         SetHookEnable(true);
         thread_epoll_fd = dup(m_epoll_fd);
-        ERROR_LOG(g_logger) <<"thread_epoll_fd:"<< thread_epoll_fd ;
     }
 
     void IOManager::afterRunScheduler() {

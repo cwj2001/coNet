@@ -130,7 +130,6 @@ namespace CWJ_CO_NET {
             }
             if (rt >= 0) {
                 if (timer) timer->cancel();
-                if (name == "accept") INFO_LOG(g_logger) << "hook accrpt get rt = " << rt;
                 return rt;
             } else if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
@@ -147,9 +146,6 @@ namespace CWJ_CO_NET {
                 continue;
             } else {
                 ERROR_LOG(g_logger) << name << " error ,errno=" << errno << " strerror= " << strerror(errno);
-                if (name == "accept") {
-                    ERROR_LOG(g_logger) << "accept hook";
-                }
                 return -1;
             }
         } while (true);
