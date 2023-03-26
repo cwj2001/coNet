@@ -52,8 +52,11 @@ namespace CWJ_CO_NET {
                 }
             } while (true);
 
+            bool has_task = false;
+
             std::vector<TimerManager::CallBack>list;
             listExpiredCb(list);
+            has_task = list.size() || len > 0;
             for(auto a : list){
                 schedule(a,-1);
             }
@@ -77,7 +80,6 @@ namespace CWJ_CO_NET {
                 FdContext::MutexType::Lock lock(fd_context->m_mutex);
 
                 CWJ_ASSERT(fd_context);
-                std::cout<<"";
                 int real_event = ((EPOLLIN | EPOLLOUT) & event.events) & fd_context->m_types;
 
                 if (real_event == NONE) continue;
@@ -114,6 +116,12 @@ namespace CWJ_CO_NET {
 //                if (fd_context->m_types == NONE) fd_context->reset();
 
             }
+
+            if(has_task){
+                auto tid = Thread::GetPId();
+                SetConsumeIntentionId(tid),m_global_intention_id = tid;
+            }
+            else    SetConsumeIntentionId(m_global_intention_id);
 
             memset(events.get(),0,epoll_event_buf_size);
 

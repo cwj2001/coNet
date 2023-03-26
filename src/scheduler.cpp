@@ -13,7 +13,7 @@ namespace CWJ_CO_NET {
     static Logger::ptr g_logger = GET_LOGGER("system");
     static thread_local Scheduler::ptr g_scheduler = nullptr;
     static thread_local Coroutine::ptr g_scheduler_co = nullptr; // 每个线程的用于调度的主协程
-    static thread_local pid_t insert_intention_id = GetThreadId();
+    static thread_local pid_t t_consume_intention_id = GetThreadId();
     static const size_t g_thread_msg_que_size = 2046;
 
     Scheduler::Scheduler(size_t size, bool use_cur_thread, std::string name,bool use_co_pool)
@@ -51,7 +51,7 @@ namespace CWJ_CO_NET {
             bool is_wake = false;
             bool has_task = false;
             {
-                auto que_itr = m_thread_tasks.find(insert_intention_id);
+                auto que_itr = m_thread_tasks.find(t_consume_intention_id);
                 CWJ_ASSERT(que_itr != m_thread_tasks.end());
                 CWJ_ASSERT(que_itr->second.get());
 
@@ -107,7 +107,7 @@ namespace CWJ_CO_NET {
                     }
 
                     if(has_task){
-                        insert_intention_id = que_itr->first;
+                        t_consume_intention_id = que_itr->first;
                         break;
                     }
 
@@ -181,9 +181,12 @@ namespace CWJ_CO_NET {
                 m_threads.push_back(Thread::GetThis());
             }
 
+            bool is_set_g_intention = false;
             // 统一分配线程的消息队列
             for(auto t : m_threads){
                 m_thread_tasks[t->getMId()] = std::make_shared<Scheduler::TaskQue>();
+                // 重点
+                if(!is_set_g_intention) m_global_intention_id = t->getMId(),is_set_g_intention = true;
             }
 
             auto itr = m_thread_tasks.begin();
@@ -265,8 +268,8 @@ namespace CWJ_CO_NET {
         return m_auto_stop || m_stopping;
     }
 
-    void Scheduler::SetInsertIntentionId(int id) {
-        insert_intention_id = id;
+    void Scheduler::SetConsumeIntentionId(int id) {
+        t_consume_intention_id = id;
     }
 
     std::pair<pid_t ,Scheduler::TaskQue::ptr> Scheduler::checkAndGetThreadTasks( pid_t id) {

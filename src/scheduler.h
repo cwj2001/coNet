@@ -132,6 +132,9 @@ namespace CWJ_CO_NET {
         virtual void beforeRunScheduler(){};
         virtual void afterRunScheduler(){};
 
+        // 用于子调度模块修改线程私有意向
+        static void SetConsumeIntentionId(int id);
+
     private:
 
         void run();
@@ -158,8 +161,6 @@ namespace CWJ_CO_NET {
         static Scheduler::ptr GetThis();
 
         static Coroutine::ptr GetScheduleCo();
-
-        static void SetInsertIntentionId(int id);
 
         struct TaskQue{
             using ptr = std::shared_ptr<Scheduler::TaskQue>;
@@ -193,6 +194,8 @@ namespace CWJ_CO_NET {
         // 下面两个指标可以作为当前调度器的忙碌指标，可用于负载均衡
         std::atomic<size_t> m_active_thread_count{0};
         std::atomic<size_t> m_idle_thread_count{0};
+        // 全局消费意向，主要是给子模块调整
+        std::atomic<pid_t> m_global_intention_id{0};
 
         void wakeAllThread();
     };
