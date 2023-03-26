@@ -32,12 +32,17 @@ class Thread : public std::enable_shared_from_this<Thread>,public NonCopyAble {
 
         const std::string &getMName() const;
 
+    private:
+
+        Thread(const std::string &name);
+
     public:
 
-        static Thread::ptr GetThis();
+        static Thread::ptr GetThis(const std::string & name = "main");
         static const std::string& GetName();
         static pid_t GetPId();
         static void SetName(const std::string& name);
+        static void SetThread(Thread::ptr t);
     private:
 
         static void* run(void *);

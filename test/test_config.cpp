@@ -16,9 +16,7 @@ namespace CWJ_CO_NET{
 
 
 }
-
 auto g_Logger = GET_LOGGER("system");
-
 static auto val = GET_CONFIG_MGR()->lookup<int>("key1 ",123,"this is a int");
 static auto g_name_v = GET_CONFIG_MGR()->lookup<std::string>("name",(string)"www","this is name");
 static auto g_age_v = GET_CONFIG_MGR()->lookup<int>("age",0,"desc age");

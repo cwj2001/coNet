@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 //    int port = atoi(argv[2]);
 
     const char *ip = "192.168.23.134";
-    int port = 8035;
+    int port = 8033;
 
     IOManager::ptr iom(new IOManager(1,true,"client_test"));
 

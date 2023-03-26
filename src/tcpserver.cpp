@@ -13,7 +13,6 @@ namespace CWJ_CO_NET {
     static auto g_more_tcp_server_recv_buffer_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.recv_buffer_size",1024,"more_tcp_server_recv_buffer_size");
     static auto g_more_tcp_server_bytearray_base_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.bytearray_base_size",1024,"more_tcp_server_bytearray_base_size");
     static auto g_more_tcp_server_error_sleep = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.error_sleep",3,"more_tcp_server_error_sleep");
-
     void TcpServer::bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
         for (auto &a:addrs) {
             auto sock = Socket::CreateTCPSocket();

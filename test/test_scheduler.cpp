@@ -17,7 +17,6 @@ using namespace std;
 using namespace CWJ_CO_NET;
 
 static Logger::ptr g_logger = GET_ROOT_LOGGER();
-
 // 实现条件变量+Scheduler实现任务管理器
 class TaskScheduler : public Scheduler {
 public:

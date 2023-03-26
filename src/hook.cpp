@@ -98,7 +98,6 @@ namespace CWJ_CO_NET {
 
         if (!fd_ctx || fd_ctx->isMClose() || !fd_ctx->isMIsNonblock()
             || !fd_ctx->isMIsSocket()) {
-            if (name == "recv")CWJ_ASSERT(false);
             return func(sockfd, std::forward<Args>(args)...);
         }
 

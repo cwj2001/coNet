@@ -15,9 +15,7 @@
 namespace CWJ_CO_NET {
 
     static auto g_logger = GET_LOGGER("system");
-
     thread_local int thread_epoll_fd = -1;
-
 
 
     void IOManager::wake() {
@@ -43,6 +41,9 @@ namespace CWJ_CO_NET {
                 static uint64_t  MAX_TIMEOUT = 30000ul;
                 uint64_t ms = getNextTimer();
                 ms = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
+
+                // TODO 这里在处理全局的定时器时，应该要避免惊群发生，即避免多个线程同时因为时间事件超时完成
+
                 len = epoll_wait(thread_epoll_fd, events.get(), MAX_EVENTS, ms);
                 if (len >0 || (len == 0 && errno == EFAULT)) break;
                 // 忽略该信号，因为gdb调试时总是会触发该信号
@@ -66,7 +67,8 @@ namespace CWJ_CO_NET {
                     continue;
                 }
                 epoll_event &event = evs[i];
-                // TODO epoll_wait成功返回，但是可能出现epoll_event无效，可能会出现fd_context空指针
+                // 已解决 epoll_wait成功返回，但是可能出现epoll_event无效，可能会出现fd_context空指针
+                // 原因：event数组被设置为static了，导致多线程共享
                 //(gdb) print evs[i] ,len = 2
                 //$4 = {events = 0, data = {ptr = 0x0, fd = 0, u32 = 0, u64 = 0}}
 
@@ -74,7 +76,6 @@ namespace CWJ_CO_NET {
 
                 FdContext::MutexType::Lock lock(fd_context->m_mutex);
 
-                auto gdbtest = fd_context->m_types;
                 CWJ_ASSERT(fd_context);
                 std::cout<<"";
                 int real_event = ((EPOLLIN | EPOLLOUT) & event.events) & fd_context->m_types;
@@ -116,7 +117,7 @@ namespace CWJ_CO_NET {
 
             memset(events.get(),0,epoll_event_buf_size);
 
-        }while(getTaskCount()<=0 && !isStop());
+        }while(false && !isStop());
 
 
     }

@@ -146,15 +146,6 @@ namespace CWJ_CO_NET{
            return std::move(mp);
         }
     };
-
-
-
-
-
-
-
-
-
 }
 
 #endif //CWJ_CO_NET_YAML_CAST_H

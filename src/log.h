@@ -27,7 +27,7 @@ namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
       CWJ_CO_NET::LogEvent(                                                             \
             __FILE__,__LINE__,                                              \
-            CWJ_CO_NET::Thread::GetPId(),CWJ_CO_NET::Coroutine::GetId(),                            \
+            CWJ_CO_NET::Thread::GetPId(),CWJ_CO_NET::Coroutine::GetId(),                \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
             CWJ_CO_NET::Thread::GetName(),level,logger).getMSs()

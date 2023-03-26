@@ -42,7 +42,6 @@ namespace CWJ_CO_NET{
     }
 
     void Thread::join() {
-//        ERROR_LOG(g_logger)<<"-=-=-=-==-"<<"join";
         if(m_thread){
             if(pthread_join(m_thread, nullptr)){
                 ERROR_LOG(g_logger)<< "thread :" << m_name << " pthread_join error ";
@@ -52,7 +51,13 @@ namespace CWJ_CO_NET{
         }
     }
 
-    Thread::ptr Thread::GetThis() {
+    Thread::ptr Thread::GetThis(const std::string &name) {
+
+        // 这个判断只有在主线程中才能会被进入，如果是采用pthread_create函数开辟的线程，
+        // 那么就会在启动线程的时候设置，且因为该变量是线程私有，所以不需要担心线程安全问题
+        if(!g_cur_thread){
+            g_cur_thread = std::shared_ptr<Thread>(new Thread(name));
+        }
         return g_cur_thread;
     }
 
@@ -72,13 +77,11 @@ namespace CWJ_CO_NET{
         g_cur_thread_name = g_cur_thread->m_name;
         pthread_setname_np(pthread_self(), g_cur_thread_name.substr(0, 15).c_str());
         g_cur_thread->m_id = GetThreadId();
-//        ERROR_LOG(g_logger)<<GetThreadId()<<"===============";
         CallBack cb;
         cb.swap(g_cur_thread->m_cb);
 
         g_cur_thread->m_sem.notify();
         cb();
-//        WARN_LOG(g_logger)<<"run finsih";
 
         g_cur_thread_name = "";
         g_cur_thread.reset();
@@ -100,7 +103,6 @@ namespace CWJ_CO_NET{
         // 这里用信号量的原因，就是为了保证在pthread 的run 初始化好之前，保证Thread仍然存在
         m_sem.wait();
 
-//        INFO_LOG(g_logger)<<" create "<<m_thread;
     }
 
     void  Thread::SetName(const std::string &name) {
@@ -108,6 +110,15 @@ namespace CWJ_CO_NET{
         g_cur_thread_name = name;
         pthread_setname_np(pthread_self(), g_cur_thread_name.substr(0, 15).c_str());
         return ;
+    }
+
+    void Thread::SetThread(Thread::ptr t) {
+        g_cur_thread = t;
+    }
+
+    Thread::Thread(const std::string &name) : m_id(GetThreadId())
+            ,m_name(name)
+            , m_sem(0) {
     }
 
 }

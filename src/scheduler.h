@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <memory>
 #include <atomic>
+#include <deque>
 
 #include "thread.h"
 #include "coroutine.h"
@@ -53,15 +54,33 @@ namespace CWJ_CO_NET {
 
         virtual void start();
 
-        size_t getTaskCount();
+//        size_t getTaskCount();
+
 
         template<typename T>
         void schedule(const T & t,int thread_id){
             CoOrFunc task(t,thread_id);
             if(task.m_co || task.m_cb){
                 {
-                    MutexType::Lock lock(m_mutex);
-                    m_tasks.push_back(task);
+//                    MutexType::Lock lock(m_mutex);
+//                    m_tasks.push_back(task);
+                    if(m_started){
+                        pid_t id  = Thread::GetPId();
+                        auto pp = checkAndGetThreadTasks(id);
+                        auto task_que_ptr = pp.second;
+                        CWJ_ASSERT(task_que_ptr);
+                        MutexType::Lock lock(task_que_ptr->m_mutex);
+                        task_que_ptr->m_task.push_back(task);
+                        task_que_ptr->m_task_size ++ ;
+                    }else{
+                        MutexType::Lock lock(m_mutex);
+                        if(m_started){
+                            lock.unlock();
+                            schedule(t,thread_id);
+                        }else {
+                            m_share_task_que.push_back(task);
+                        }
+                    }
                 }
                 wake();
             }
@@ -69,16 +88,43 @@ namespace CWJ_CO_NET {
 
         template<class InputIterator>
         void schedule(InputIterator begin, InputIterator end) {
-            MutexType::Lock lock(m_mutex);
             bool is_wake = false;
-            for(auto itr = begin;itr!=end;itr++){
-                if(itr->m_cb || itr->m_co) {
-                    m_tasks.push_back(*itr);
-                    is_wake = true;
+            if(m_started) {
+                pid_t id  = Thread::GetPId();
+                auto pp = checkAndGetThreadTasks(id);;
+                auto task_que_ptr = pp.second;
+                MutexType::Lock lock(task_que_ptr->m_mutex);
+
+                for (auto itr = begin; itr != end; itr++) {
+                    if (itr->m_cb || itr->m_co) {
+
+                        task_que_ptr->m_task.push_back(*itr);
+                        task_que_ptr->m_task_size++;
+                        is_wake = true;
+                    }
+
+                }
+            }else{
+
+                MutexType::Lock lock(m_mutex);
+                if(m_started){
+                    lock.unlock();
+                    schedule(begin,end);
+                }else {
+                    for (auto itr = begin; itr != end; itr++) {
+                        if (itr->m_cb || itr->m_co) {
+                            m_share_task_que.push_back(*itr);
+                            CWJ_ASSERT(false);
+                            is_wake = true;
+                        }
+
+                    }
                 }
 
             }
-            if(is_wake)     wake();
+            if(is_wake){
+                wake();
+            }
         }
 
     protected:
@@ -113,12 +159,27 @@ namespace CWJ_CO_NET {
 
         static Coroutine::ptr GetScheduleCo();
 
+        static void SetInsertIntentionId(int id);
+
+        struct TaskQue{
+            using ptr = std::shared_ptr<Scheduler::TaskQue>;
+            std::list<CoOrFunc> m_task;
+            std::atomic<size_t> m_task_size;
+            MutexType m_mutex;
+        };
+
+        std::pair<pid_t ,Scheduler::TaskQue::ptr> checkAndGetThreadTasks(pid_t id);
+
+
     private:
         std::vector<Thread::ptr> m_threads;
-        std::list<CoOrFunc> m_tasks;
+//        std::list<CoOrFunc> m_tasks;
+        std::unordered_map<pid_t ,TaskQue::ptr> m_thread_tasks;
+        std::list<CoOrFunc> m_share_task_que;
 
         std::string m_name;
         size_t m_thread_count = 0;
+        std::atomic<size_t> m_outside_intention_ind{0}; //
 
         // 是否将当前线程也设置为调度线程
         bool m_use_cur_thread = false;
@@ -126,6 +187,7 @@ namespace CWJ_CO_NET {
         std::atomic<bool> m_started{false};
         std::atomic<bool> m_stopping{false}; // 用来标识调度器外部是否被停止了
         MutexType m_mutex;
+        Semaphore m_start_sem{0};
     protected:
         std::atomic<bool> m_auto_stop{false}; // 用来内部停止的
         // 下面两个指标可以作为当前调度器的忙碌指标，可用于负载均衡
