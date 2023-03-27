@@ -157,6 +157,7 @@ namespace CWJ_CO_NET {
 
     }
 
+    // 该函数是重点
     void Scheduler::start() {
         // 锁加双层判断
         {
