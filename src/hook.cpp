@@ -89,21 +89,27 @@ namespace CWJ_CO_NET {
     int do_io(int sockfd, Func func, std::string name, CWJ_CO_NET::IOManager::EventType event_type,
               CWJ_CO_NET::FdCtx::TimeoutType timeout_type, Args &&...args) {
 
-
         if (!CWJ_CO_NET::IsHookEnable()) {
             return func(sockfd, std::forward<Args>(args)...);
         }
 
-        auto fd_ctx = CWJ_CO_NET::FdMgr::GetInstance()->get(sockfd, false);
+//        auto fd_ctx = CWJ_CO_NET::FdMgr::GetInstance()->get(sockfd, false);
 
-        if (!fd_ctx || fd_ctx->isMClose() || !fd_ctx->isMIsNonblock()
-            || !fd_ctx->isMIsSocket()) {
-            return func(sockfd, std::forward<Args>(args)...);
-        }
+        auto fd_ctx = CWJ_CO_NET::FdMgr::GetInstance()->get(sockfd, true);
+
+//        if (fd_ctx->isMClose() || !fd_ctx->isMIsNonblock()
+//            /*|| !fd_ctx->isMIsSocket()*/) {
+//            return func(sockfd, std::forward<Args>(args)...);
+//        }
+
+//        if(name == "recv"){
+//            CWJ_ASSERT(false);
+//        }
 
 
         auto iomanager = CWJ_CO_NET::IOManager::GetThis();
         auto co = CWJ_CO_NET::Coroutine::GetThis();
+
 
         uint64_t ms = fd_ctx->getTimeout(timeout_type);
 
@@ -132,8 +138,20 @@ namespace CWJ_CO_NET {
                 return rt;
             } else if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
+
+
                 iomanager->addEvent(sockfd, event_type);
+
+                if (name == "recv") {
+//                    CWJ_ASSERT(false);
+                    INFO_LOG(g_logger) << "=========== recv ============";
+                }
+
                 CWJ_CO_NET::Coroutine::YieldToHold();
+
+//                if (name == "recv") {
+//                    CWJ_ASSERT(false);
+//                }
 
                 {
                     if (!con_info || con_info->isMIsCancel() == true) {
@@ -165,7 +183,7 @@ static auto g_logger = GET_LOGGER("system");
 
 int usleep(useconds_t usec) {
     if (!CWJ_CO_NET::IsHookEnable()) {
-        return sleep_f(usec);
+        return usleep_f(usec);
     }
 
     auto co = CWJ_CO_NET::Coroutine::GetThis();
@@ -183,6 +201,7 @@ int usleep(useconds_t usec) {
 }
 
 unsigned int sleep(unsigned int seconds) {
+    return sleep_f(seconds);
     return usleep(seconds * 1000 * 1000);
 }
 

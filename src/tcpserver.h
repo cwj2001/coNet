@@ -11,6 +11,7 @@
 #include <atomic>
 #include <sys/eventfd.h>
 
+#include "cwj_process_cycle.h"
 #include "iomanager.h"
 #include "address.h"
 #include "socket.h"
@@ -81,6 +82,55 @@ namespace CWJ_CO_NET {
     private:
         eventfd_t m_accept_error_wake_fd;
         std::atomic<size_t> m_accept_idle_count;// 用于负载均衡判断阻塞的accept数目的多少
+    };
+
+    class SingleServer{
+    public:
+        using ptr = std::shared_ptr<SingleServer>;
+    private:
+    };
+
+    class MultiServer{
+    public:
+        using ptr = std::shared_ptr<MultiServer>;
+
+        using MutexType = Mutex;
+        MultiServer(const std::string &mName, size_t accept_thread_count, size_t io_thread_count, bool accept_shared);
+
+        virtual ~MultiServer() {};
+
+        void bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails);
+
+        bool bind(Address::ptr addr);
+
+        void start();
+
+        void stop();
+
+    protected:
+
+        virtual void handleClient(Socket::ptr sock);
+
+        virtual void handleAccept(Socket::ptr sock);
+
+        virtual void handleAcceptError();
+
+
+    private:
+
+        MasterProcess::ptr masterProcess;
+
+        const std::string m_name;
+        // 还差一个专门处理耗时任务的线程池
+        std::vector<Socket::ptr> m_accept_fds;
+
+        std::atomic<bool> m_accept_shared{false};
+        std::atomic<bool> m_stopping{true};
+        std::atomic<bool>m_only_accept{true};
+
+        MutexType m_mutex;
+
+
     };
 
 

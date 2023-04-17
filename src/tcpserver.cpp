@@ -13,6 +13,7 @@ namespace CWJ_CO_NET {
     static auto g_more_tcp_server_recv_buffer_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.recv_buffer_size",1024,"more_tcp_server_recv_buffer_size");
     static auto g_more_tcp_server_bytearray_base_size = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.bytearray_base_size",1024,"more_tcp_server_bytearray_base_size");
     static auto g_more_tcp_server_error_sleep = SingleConfigMgr::GetInstance()->lookup<int>("moretcpserver.error_sleep",3,"more_tcp_server_error_sleep");
+
     void TcpServer::bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
         for (auto &a:addrs) {
             auto sock = Socket::CreateTCPSocket();
@@ -173,6 +174,39 @@ namespace CWJ_CO_NET {
                                  bool acceptShared) :m_accept_idle_count(0), TcpServer(mName, acceptThreadCount, ioThreadCount, acceptShared) {
 
         m_accept_error_wake_fd = eventfd(0,0);
+
+    }
+
+    MultiServer::MultiServer(const std::string &mName, size_t accept_thread_count, size_t io_thread_count,
+                             bool accept_shared) {
+
+    }
+
+    void MultiServer::bind(const std::vector<Address::ptr> &addrs, std::vector<Address::ptr> &fails) {
+
+    }
+
+    bool MultiServer::bind(Address::ptr addr) {
+        return false;
+    }
+
+    void MultiServer::start() {
+
+    }
+
+    void MultiServer::stop() {
+
+    }
+
+    void MultiServer::handleClient(Socket::ptr sock) {
+
+    }
+
+    void MultiServer::handleAccept(Socket::ptr sock) {
+
+    }
+
+    void MultiServer::handleAcceptError() {
 
     }
 }

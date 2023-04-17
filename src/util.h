@@ -12,6 +12,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <chrono>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
 
 namespace CWJ_CO_NET{
 
@@ -28,6 +31,11 @@ namespace CWJ_CO_NET{
     void GetAllSameSuffixFile(std::vector<std::string>& files,const std::string & path ,const std::string& suffix);
 
     pid_t GetThreadId();
+
+    int SetNonblock(int s);
+
+
+    void SetProcessName(const std::string & name);
 
     void Backtrace(std::vector<std::string>&trace,int size,int skip);
 
@@ -79,6 +87,8 @@ namespace CWJ_CO_NET{
         // 比如std::chrono::seconds
         return end-start;
     }
+
+    pid_t GetProcessId();
 
 
 }

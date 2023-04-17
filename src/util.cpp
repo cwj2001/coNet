@@ -1,6 +1,8 @@
 //
 // Created by 抑~风 on 2023/1/29.
 //
+#include <unistd.h>
+#include <fcntl.h>
 #include <cstring>
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
@@ -8,12 +10,13 @@
 #include <memory>
 #include <iomanip>
 #include <sstream>
-
+#include <sys/prctl.h>
 #include "util.h"
 #include "log.h"
 #include "macro.h"
 
 namespace CWJ_CO_NET{
+
     std::string GetAbsolutePath(const std::string & path){
         if(path.empty())    return "/";
         if(path[0] == '/'){
@@ -259,6 +262,36 @@ namespace CWJ_CO_NET{
         }
         if(*a != '\0' || *b != '\0')    return false;
         return true;
+    }
+
+    void SetProcessName(const std::string & name) {
+        if(prctl(PR_SET_NAME, (unsigned long) name.c_str(), 0, 0, 0) == -1){
+            ERROR_LOG(GET_ROOT_LOGGER()) << "Failed to set process name : "<<name;
+        }
+    }
+
+    pid_t GetProcessId(){
+        return syscall(SYS_getpid);
+    }
+
+    int SetNonblock(int s) {
+//        int  nb;
+//        nb = 1;
+//        return ioctl(s, FIONBIO, &nb);
+
+        CWJ_ASSERT(s >= 0);
+
+        int flags=fcntl(s,F_GETFL,0);
+        if(!(flags & O_NONBLOCK)) {
+            flags |= O_NONBLOCK;
+
+            if (fcntl(s, F_SETFL, flags)) {
+                ERROR_LOG(GET_ROOT_LOGGER()) << "fcntl error,errno=" << errno << " strerror=" << strerror(errno);
+                CWJ_ASSERT(false);
+            }
+        }
+
+
     }
 
 

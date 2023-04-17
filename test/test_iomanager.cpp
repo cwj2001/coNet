@@ -5,11 +5,11 @@
 #include <iostream>
 #include <vector>
 #include <string>
-
+#include <sys/eventfd.h>
 #include "iomanager.h"
 #include "socket.h"
 #include "macro.h"
-
+#include "process.h"
 using namespace std;
 using namespace CWJ_CO_NET;
 
@@ -33,11 +33,107 @@ void accept_handle(){
 
 }
 
-int main(){
-   shared_ptr<IOManager> ioManager(new IOManager(1,true,"ttt"));
-   ioManager->schedule(accept_handle,-1);
-   ioManager->start();
+int fds[2];
+
+void test(){
+
+
+    CWJ_ASSERT(socketpair(AF_UNIX,SOCK_STREAM,0,fds)!=-1);
+
+    SetNonblock(fds[0]);
+    SetNonblock(fds[1]);
+
+    while(true){
+        int fd =fds[0];
+        auto msg = Channel::ReadChannel(fd);
+        INFO_LOG(g_logger) << "msg recv"<<endl;
+        CWJ_ASSERT(msg);
+        if(!msg){
+            break;
+        }
+    }
+}
+
+void common_test(){
+    shared_ptr<IOManager> ioManager(new IOManager(1,true,"ttt"));
+    ioManager->schedule(accept_handle,-1);
+    ioManager->start();
     CWJ_ASSERT(false);
+}
+
+
+
+int main(){
+
+
+
+    int fd = eventfd(0,0);
+
+    SetNonblock(fd);
+    cout<<"";
+    auto m_master_cycle = [fd] (IOManager::ptr iom) {
+        int ind = 0;
+        while(ind < 0x3f3f3f3f){
+            INFO_LOG(g_logger)<<" m_master_cycle run";
+            int t = sleep(1);
+            uint64_t buf = 8;
+            write(fd,&buf,sizeof(buf));
+//            INFO_LOG(g_logger) << "sleep fail :" << t ;
+            ind ++;
+        }
+    };
+    auto m_worker_cycle = [fd] (IOManager::ptr iom){
+        int ind = 0;
+        while(ind < 0x3f3f3f3f){
+            INFO_LOG(g_logger)<<" m_worker_cycle run pid:"<<Process::GetProcessId();
+            uint64_t buf;
+            read(fd,&buf,sizeof(uint64_t));
+            INFO_LOG(g_logger) << "====";
+            read(fd,&buf,sizeof(uint64_t));
+            INFO_LOG(g_logger) << "====";
+            read(fd,&buf,sizeof(uint64_t));
+            INFO_LOG(g_logger) << "=== eventfd buf read = "<<buf << " === ";
+            ind ++;
+        }
+    };
+
+
+    int pid =  fork();
+//
+    shared_ptr<IOManager> ioManager(new IOManager(1,true,"ttt"));
+
+    Process::UpdateProcessId();
+    ioManager->schedule(test,-1);
+//q
+//    Process::UpdateProcessId();
+//    INFO_LOG(g_logger) << "after fork" ;
+//
+    switch (pid) {
+        case -1 :
+            CWJ_ASSERT(false);
+            break;
+        case 0:
+            ioManager->schedule(std::bind(m_worker_cycle,ioManager),-1);
+            ioManager->start();
+            ioManager->stop();
+            break;
+        default:
+//            while(true){
+//                INFO_LOG(g_logger) << "fa run";
+//                sleep(1);
+//                if(pid > 0x3f3f3f3f) break;
+//            }
+
+            ioManager->schedule(std::bind(m_master_cycle,ioManager),-1);
+            ioManager->start();
+            ioManager->stop();
+            break;
+    }
+
+
+//
+
+
     return 0;
 }
 

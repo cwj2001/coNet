@@ -61,7 +61,6 @@ namespace CWJ_CO_NET {
                     if(que_itr == m_thread_tasks.end()) que_itr = m_thread_tasks.begin();
                     CWJ_ASSERT(que_itr != m_thread_tasks.end());
                     CWJ_ASSERT_MGS(que_itr->second.get(),"pid:"+std::to_string(que_itr->first));
-
                     if (m_stopping) break;
 
 

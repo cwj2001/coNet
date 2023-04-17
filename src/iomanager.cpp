@@ -48,8 +48,14 @@ namespace CWJ_CO_NET {
                 if (len >0 || (len == 0 && errno == EFAULT)) break;
                 // 忽略该信号，因为gdb调试时总是会触发该信号
                 else if(errno != EINTR){
-                    ERROR_LOG(g_logger) << "epoll_wait error ,errno="<<errno<<" strerror="<<strerror(errno);
+                    ERROR_LOG(g_logger) <<"len= " << len << " epoll_wait error ,errno="<<errno<<" strerror="<<strerror(errno);
                 }
+//                if(len == 0){
+////                    sleep(1);
+//                    CWJ_ASSERT(false);
+//                }
+                ERROR_LOG(g_logger) << "len="<<len;
+
             } while (true);
 
             bool has_task = false;
@@ -149,7 +155,6 @@ namespace CWJ_CO_NET {
             CWJ_ASSERT(false);
         }
 
-        ERROR_LOG(g_logger) <<"thread_epoll_fd:"<< m_epoll_fd;
 
     }
 

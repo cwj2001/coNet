@@ -107,9 +107,12 @@ namespace CWJ_CO_NET {
     }
 
     LogEvent::LogEvent(const char *mFile, int32_t mLine, uint32_t mThreadId, uint32_t mFiberId, uint64_t mTime,
-                       std::string mThreadName, LogLevel mLevel, Logger::ptr logger)
+                       std::string mThreadName,LogLevel mLevel, Logger::ptr logger,uint32_t pid)
             : m_file(mFile), m_line(mLine), m_threadId(mThreadId),
-              m_fiberId(mFiberId), m_time(mTime), m_threadName(std::move(mThreadName)),
+              m_pid(pid),
+              m_fiberId(mFiberId),
+              m_time(mTime),
+              m_threadName(std::move(mThreadName)),
               m_level(mLevel), m_logger(std::move(logger)) {}
 
     LogLevel LogEvent::getMLevel() const {
@@ -150,6 +153,10 @@ namespace CWJ_CO_NET {
 
     const std::string &LogEvent::getMThreadName() const {
         return m_threadName;
+    }
+
+    uint32_t LogEvent::getMPid() const {
+        return m_pid;
     }
 
     void Logger::log(LogLevel level,LogEvent &event) {
@@ -297,6 +304,13 @@ namespace CWJ_CO_NET {
         }
     };
 
+    class ProcessIdFormat: public LogFormatter::FormatItem{
+    public:
+        void format(std::ostream& os,LogEvent& event) override{
+            os<<event.getMPid();
+        }
+    };
+
     class CoIdFormat: public LogFormatter::FormatItem {
     public:
         void format(std::ostream& os,LogEvent& event) override{
@@ -366,6 +380,7 @@ namespace CWJ_CO_NET {
                 XX('c',CoIdFormat),
                 XX('n',EndFormat),
                 XX('t',TabFormat),
+                XX('P',ProcessIdFormat),
 #undef XX
         };
 

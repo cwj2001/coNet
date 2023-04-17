@@ -22,6 +22,7 @@
 #include "thread.h"
 #include "coroutine.h"
 #include "mutex.h"
+#include "process.h"
 
 namespace CWJ_CO_NET{
 #define CO_NET_LOG(logger,level)                                            \
@@ -30,7 +31,7 @@ namespace CWJ_CO_NET{
             CWJ_CO_NET::Thread::GetPId(),CWJ_CO_NET::Coroutine::GetId(),                \
             std::chrono::duration_cast<std::chrono::milliseconds>           \
             (std::chrono::system_clock::now().time_since_epoch()).count(),  \
-            CWJ_CO_NET::Thread::GetName(),level,logger).getMSs()
+            CWJ_CO_NET::Thread::GetName(),level,logger,CWJ_CO_NET::Process::GetProcessId() ).getMSs()
 
 #define DEBUG_LOG(logger) \
         CO_NET_LOG(logger,CWJ_CO_NET::LogLevel::DEBUG)
@@ -104,7 +105,8 @@ namespace CWJ_CO_NET{
         LogEvent(const char *mFile, int32_t mLine,
                  uint32_t mThreadId, uint32_t mFiberId,
                  uint64_t mTime,std::string mThreadName,
-                 LogLevel mLevel,std::shared_ptr<Logger> logger);
+                 LogLevel mLevel,std::shared_ptr<Logger> logger,
+                 uint32_t pid = -1);
 
         virtual ~LogEvent();
 
@@ -129,12 +131,15 @@ namespace CWJ_CO_NET{
 
         inline const std::string &getMThreadName() const;
 
+        uint32_t getMPid() const;
+
         std::stringstream & getMSs(){return m_ss;};
 
     private:
         const char* m_file = nullptr;
         int32_t  m_line = 0;
         uint32_t m_threadId = 0;
+        uint32_t m_pid = 0;
         uint32_t m_fiberId = 0;
         uint64_t m_time = 0;// 日志发生的时间
         std::string m_threadName;
@@ -148,7 +153,7 @@ namespace CWJ_CO_NET{
     };
 
     /**
-     *
+     * %P 进程号
      * %p 日志级别
      * %F 文件名
      * %L 行号
@@ -161,7 +166,7 @@ namespace CWJ_CO_NET{
      * %n 换行符
      * %t 制表符
      *
-     * 默认格式 [%p] [%C] :  %d{%Y-%m-%d %H:%M:%S} %t%F %t%L %t%T %t%N %t%c %t%M;
+     * 默认格式 [%p] [%C] :  %d{%Y-%m-%d %H:%M:%S} %t%F %t%L %t%P %t%T %t%N %t%c %t%M;
      *
      * */
 
@@ -184,7 +189,7 @@ namespace CWJ_CO_NET{
 
     private:
         static const std::string& GetDefaultFormat(){
-            static std::string str = "[%p]%t  %d{%Y-%m-%d %H:%M:%S} %t [%C]  %t ==> %t%F:%L %t%T %t%N %t%c %t%M";
+            static std::string str = "[%p]%t  %d{%Y-%m-%d %H:%M:%S} %t [%C]  %t ==> %t%F:%L %t%P %t%T %t%N %t%c %t%M";
             return str;
         };
     private:
