@@ -1,3 +1,0 @@
-add_subdirectory(http)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include/http)
