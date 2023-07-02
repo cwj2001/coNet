@@ -5,18 +5,20 @@
 #ifndef CWJ_CO_NET_NEWOPERATOR_H
 #define CWJ_CO_NET_NEWOPERATOR_H
 
+#include <cstddef>
+
 #define CWJ_JEMALLOC_OPEN
 
 #ifdef CWJ_JEMALLOC_OPEN
 
 void *operator new(size_t);
 
-void *operator new[](size_t) ;
+void *operator new[](size_t);
 
-void operator delete (void *) noexcept ;
+void operator delete(void *) noexcept;
 
-void operator delete [](void *) noexcept;
+void operator delete[](void *) noexcept;
 
 #endif
 
-#endif //CWJ_CO_NET_NEWOPERATOR_H
+#endif  // CWJ_CO_NET_NEWOPERATOR_H
