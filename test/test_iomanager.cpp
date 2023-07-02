@@ -78,7 +78,6 @@ int main(){
             int t = sleep(1);
             uint64_t buf = 8;
             write(fd,&buf,sizeof(buf));
-//            INFO_LOG(g_logger) << "sleep fail :" << t ;
             ind ++;
         }
     };

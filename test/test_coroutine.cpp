@@ -12,6 +12,7 @@
 #include "util.h"
 #include "log.h"
 #include "config.h"
+#include "cwj_cpucontext.h"
 
 using namespace std;
 using namespace CWJ_CO_NET;

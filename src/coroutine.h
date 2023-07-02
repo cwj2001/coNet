@@ -9,8 +9,9 @@
 #include <ucontext.h>
 #include <functional>
 
+#include "cwj_cpucontext.h"
 
-
+#define USE_UCONTEXT
 
 namespace CWJ_CO_NET {
 
@@ -77,7 +78,11 @@ namespace CWJ_CO_NET {
         void *m_stack = nullptr;
         size_t m_stack_size = 0;
 
+#ifdef USE_UCONTEXT
         ucontext_t m_ctx;
+#else
+        CpuCtx_t  m_cpu_ctx;
+#endif
 
         CoState::State m_state = CoState::State::INIT;
 

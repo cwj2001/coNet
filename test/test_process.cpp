@@ -13,8 +13,7 @@ using namespace std;
 using namespace CWJ_CO_NET;
 
 int main(){
-
-    MasterProcess master(2);
+    MasterProcess master(3);
     master.start_process_cycle();
     return 0;
 }

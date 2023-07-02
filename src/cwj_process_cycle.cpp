@@ -315,6 +315,9 @@ namespace CWJ_CO_NET{
         cur_p.m_cb = std::bind(&MasterProcess::workCycle,this);
         cur_p.m_status = Process::State::EXEC;
 
+        if(!pid)
+        INFO_LOG(g_logger) << " fork son " << Process::GetProcessId();
+
         switch (pid) {
             case -1:
                 ERROR_LOG(g_logger) << "fork() failed while spawning"<<name
@@ -327,7 +330,6 @@ namespace CWJ_CO_NET{
                 cur_p.m_pid = pid;
                 g_process_ind = ind;
                 workCycle();
-                CWJ_ASSERT(false);
                 exit(0);
                 break;
             default:
@@ -343,8 +345,6 @@ namespace CWJ_CO_NET{
 
         initWorkCycle();
         m_iom->start();
-        INFO_LOG(g_logger) << "worker end" ;
-        CWJ_ASSERT(false);
         m_iom->stop();
     }
 
@@ -356,14 +356,17 @@ namespace CWJ_CO_NET{
             auto &one = g_processes[msg->m_slot];
             if(msg->m_cmd == Channel::CMD_QUIT){
 //                CWJ_ASSERT(false);
+                INFO_LOG(g_logger) << " recv channel Channel::CMD_QUIT";
                 // TODO 优雅退出，后面需要然后前面的都停止
                 m_iom->auto_stop();
                 break;
             }else if(msg->m_cmd == Channel::CMD_OPEN_CHANNEL){
                 INFO_LOG(g_logger) << "son process pid="<<GetProcessId()<<" open ";
+                INFO_LOG(g_logger) << " recv channel Channel::CMD_OPEN_CHANNEL";
                 one.m_pid = msg->m_pid;
                 one.m_channel[0] = msg->m_fd;
             }else if(msg->m_cmd == Channel::CMD_CLOSE_CHANNEL){
+                INFO_LOG(g_logger) << " recv channel Channel::CMD_CLOSE_CHANNEL";
                 close(one.m_channel[0]);
                 one.m_channel[0] = -1;
             }
@@ -453,9 +456,9 @@ namespace CWJ_CO_NET{
         SetNonblock(fd);
         m_master_cycle = [fd] (IOManager::ptr iom) {
             INFO_LOG(g_logger)<<" m_master_cycle run";
-            int t = sleep(1);
-            uint64_t buf = 8;
-            write(fd,&buf,sizeof(buf));
+//            int t = sleep(1);
+//            uint64_t buf = 8;
+//            write(fd,&buf,sizeof(buf));
         };
         m_worker_cycle = [fd] (IOManager::ptr iom){
             INFO_LOG(g_logger)<<" m_worker_cycle run pid:"<<Process::GetProcessId();

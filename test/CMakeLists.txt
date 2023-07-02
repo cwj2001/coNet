@@ -1,12 +1,13 @@
 add_subdirectory(./other)
 add_subdirectory(./nginx_demo)
+add_subdirectory(./self_demo)
 include_directories(../src)
 include_directories(../include)
 LINK_DIRECTORIES(../lib)
 LINK_DIRECTORIES(../lib/jemalloc)
 LINK_DIRECTORIES(../lib/http-parser)
-find_package( yaml-cpp REQUIRED )
-find_package(Boost COMPONENTS regex system REQUIRED)
+#find_package( yaml-cpp REQUIRED )
+#find_package(Boost COMPONENTS regex system REQUIRED)
 
 add_compile_options(-rdynamic)
 
@@ -16,6 +17,7 @@ set(BOOST_ROOT "/usr/local/include/boost")
 include_directories(/usr/local/include)
 #添加库文件搜索路径
 link_directories(/usr/local/lib)
+link_directories(../lib)
 
 aux_source_directory(../src SRC_LIST) # 定义变量，存储当前目录下的所有源文件
 aux_source_directory(../src/http HTTP_LIST)

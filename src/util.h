@@ -4,6 +4,7 @@
 
 #ifndef CWJ_CO_NET_UTIL_H
 #define CWJ_CO_NET_UTIL_H
+
 #include <cxxabi.h>
 #include <unistd.h>
 #include <memory>
@@ -14,44 +15,47 @@
 #include <chrono>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <string>
+#include <cstring>
 
 
-namespace CWJ_CO_NET{
+namespace CWJ_CO_NET {
 
- static const int PATH_SIZE = 255;
+    static const int PATH_SIZE = 255;
 
     template<class T>
-    const char* TypeToName() {
-        static const char* s_name = abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr);
+    const char *TypeToName() {
+        static const char *s_name = abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr);
         return s_name;
     }
 
-    std::string GetAbsolutePath(const std::string & path);
+    std::string GetAbsolutePath(const std::string &path);
 
-    void GetAllSameSuffixFile(std::vector<std::string>& files,const std::string & path ,const std::string& suffix);
+    void GetAllSameSuffixFile(std::vector <std::string> &files, const std::string &path, const std::string &suffix);
 
     pid_t GetThreadId();
 
     int SetNonblock(int s);
 
 
-    void SetProcessName(const std::string & name);
+    void SetProcessName(const std::string &name);
 
-    void Backtrace(std::vector<std::string>&trace,int size,int skip);
+    void Backtrace(std::vector <std::string> &trace, int size, int skip);
 
-    std::string BacktraceToStr(int size = 256,int skip = 0,const std::string& prefix = "",const std::string& suffix = "\n");
+    std::string BacktraceToStr(int size = 256, int skip = 0, const std::string &prefix = std::string(""),
+                               const std::string suffix = std::string("\n"));
 
     uint64_t GetCurrentMs();
 
-    std::string Time2Str(time_t ts, const std::string& format);
+    std::string Time2Str(time_t ts, const std::string &format);
 
-    std::string StringTrim(const std::string& str, const std::string& delimit);
+    std::string StringTrim(const std::string &str, const std::string &delimit);
 
-    std::string UrlDecode(const std::string& str, bool space_as_plus);
+    std::string UrlDecode(const std::string &str, bool space_as_plus);
 
-    std::string UrlEncode(const std::string& str, bool space_as_plus) ;
+    std::string UrlEncode(const std::string &str, bool space_as_plus);
 
-    bool StrCmpIg(const char * a,const char *b,bool isIgnore);
+    bool StrCmpIg(const char *a, const char *b, bool isIgnore);
 
 //    template <typename T>
 //    struct TimeData {
@@ -74,18 +78,18 @@ namespace CWJ_CO_NET{
 
 
 
-    template<typename T,typename... Args>
-    auto CalcTime(T&& func, Args&&... rest) -> double{
+    template<typename T, typename... Args>
+    auto CalcTime(T &&func, Args &&... rest) -> double {
         auto start = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::system_clock::now().time_since_epoch()).count();
+                (std::chrono::system_clock::now().time_since_epoch()).count();
         func(std::forward<Args>(rest)...);
         auto end = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::system_clock::now().time_since_epoch()).count();
+                (std::chrono::system_clock::now().time_since_epoch()).count();
 //    std::chrono::duration<double> diff = end-start;
         // 计算毫秒时间差并输出
         // 如果要求其他时间单位可以修改 std::chrono::milliseconds 为其他类型
         // 比如std::chrono::seconds
-        return end-start;
+        return end - start;
     }
 
     pid_t GetProcessId();

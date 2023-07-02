@@ -111,7 +111,7 @@ namespace CWJ_CO_NET{
         return ;
     }
 
-    std::string BacktraceToStr(int size, int skip, const std::string &prefix,const std::string& suffix) {
+    std::string BacktraceToStr(int size, int skip, const std::string &prefix,const std::string suffix) {
         std::cout<<"==="<<std::endl;
         std::vector<std::string>list;
         Backtrace(list,size,skip);
@@ -280,17 +280,19 @@ namespace CWJ_CO_NET{
 //        return ioctl(s, FIONBIO, &nb);
 
         CWJ_ASSERT(s >= 0);
-
+        int t = 0;
         int flags=fcntl(s,F_GETFL,0);
         if(!(flags & O_NONBLOCK)) {
             flags |= O_NONBLOCK;
 
-            if (fcntl(s, F_SETFL, flags)) {
+
+            if ((t = fcntl(s, F_SETFL, flags))) {
                 ERROR_LOG(GET_ROOT_LOGGER()) << "fcntl error,errno=" << errno << " strerror=" << strerror(errno);
                 CWJ_ASSERT(false);
             }
         }
 
+        return t ;
 
     }
 

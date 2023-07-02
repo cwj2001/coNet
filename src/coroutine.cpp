@@ -14,6 +14,7 @@
 
 namespace CWJ_CO_NET {
 
+
     static Logger::ptr g_logger = GET_LOGGER("system");
     static auto g_stack_size = ConfigVar<int>::ptr(new ConfigVar<int>("", "", 128*1024));// GET_CONFIG_MGR()->lookup<int>("cwj_co_net.coroutine.stack_size",64*1024,"coroutine stack size");
 
@@ -26,14 +27,14 @@ namespace CWJ_CO_NET {
         m_id = g_co_id;
         g_co_id++;
         m_state = CoState::EXEC;
-        std::cout << "";
+#ifdef USE_UCONTEXT
         if (getcontext(&m_ctx)) {
             ERROR_LOG(g_logger) << "getcontext error errno :" << errno;
             CWJ_ASSERT_MGS(false, "getcontext error");
             assert(false);
         }
+#endif
         g_co_count++;
-//        INFO_LOG(g_logger) << "co :" << m_id << " create successfully ";
     }
 
     Coroutine::Coroutine(Coroutine::CallBack cb, size_t stack_size, bool use_scheduler) : m_use_scheduler(
@@ -49,7 +50,7 @@ namespace CWJ_CO_NET {
         m_stack_size = stack_size ? stack_size : g_stack_size->getMVal();
 
         m_stack = Allocator::Alloc(m_stack_size);
-
+#ifdef USE_UCONTEXT
         if (getcontext(&m_ctx)) {
             CWJ_ASSERT_MGS(false, "Coroutine::Coroutine(Coroutine::CallBack, size_t, bool)  getcontext fail");
         }
@@ -59,6 +60,21 @@ namespace CWJ_CO_NET {
         m_ctx.uc_stack.ss_flags = 0;
 
         makecontext(&m_ctx, &Coroutine::Run, 0);
+
+#else
+
+
+
+        char **stack = (char **)((char*)m_stack + m_stack_size);
+
+        stack[-3] = NULL;
+        stack[-2] = NULL;
+
+        m_cpu_ctx.esp = (char*)stack - (2 * sizeof(void*));
+        m_cpu_ctx.ebp = (char*)stack - (1 * sizeof(void*));
+        m_cpu_ctx.eip = (void*)&Coroutine::Run;
+
+#endif
 
         g_co_count++;
 
@@ -71,9 +87,11 @@ namespace CWJ_CO_NET {
         // 处理上下文
         m_state = CoState::INIT;
         m_cb = cb;
+#ifdef USE_UCONTEXT
         if (getcontext(&m_ctx)) {
             CWJ_ASSERT_MGS(false, "Coroutine::Coroutine(Coroutine::CallBack, size_t, bool)  getcontext fail");
         }
+#endif
 
         // 处理stack
 
@@ -83,14 +101,21 @@ namespace CWJ_CO_NET {
             m_stack_size = stack_size;
             m_stack = Allocator::Alloc(m_stack_size);
         }
-
+#ifdef USE_UCONTEXT
         m_ctx.uc_stack.ss_sp = m_stack;
         m_ctx.uc_stack.ss_size = m_stack_size;
         m_ctx.uc_stack.ss_flags = 0;
 
         makecontext(&m_ctx, &Coroutine::Run, 0);
         INFO_LOG(g_logger) << "co :" << m_id << " reused ";
+#else
 
+        void **stack = (void **)((char*)m_stack + m_stack_size);
+        m_cpu_ctx.esp = (char*)stack - (4 * sizeof(void*));
+        m_cpu_ctx.ebp = (char*)stack - (3 * sizeof(void*));
+        m_cpu_ctx.eip = (void*)&Coroutine::Run;
+
+#endif
         // 处理use
 
         m_use_scheduler = use_scheduler;
@@ -108,15 +133,30 @@ namespace CWJ_CO_NET {
         if (m_use_scheduler) {
             auto co = Scheduler::GetScheduleCo();
             CWJ_ASSERT(co);
+
+#ifdef USE_UCONTEXT
             if (swapcontext(&co->m_ctx, &m_ctx)) {
                 CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
             }
+#else
+
+            swapCpuCtx(&m_cpu_ctx,&co->m_cpu_ctx);
+
+#endif
         } else {
 
             CWJ_ASSERT(g_thread_main_co);
+
+#ifdef USE_UCONTEXT
+
             if (swapcontext(&g_thread_main_co->m_ctx, &m_ctx)) {
                 CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
             }
+#else
+
+            swapCpuCtx(&m_cpu_ctx,&g_thread_main_co->m_cpu_ctx);
+
+#endif
 
         }
     }
@@ -124,6 +164,7 @@ namespace CWJ_CO_NET {
     void Coroutine::back() {
         Coroutine::ptr co = nullptr;
         co = GetMainCo(shared_from_this());
+
         swapCoroutine(co);
     }
 
@@ -142,9 +183,20 @@ namespace CWJ_CO_NET {
         g_thread_cur_co = co;
 //        CWJ_ASSERT(false);
         co->m_state = CoState::EXEC;
+
+#ifdef USE_UCONTEXT
+
         if (swapcontext(&m_ctx, &co->m_ctx)) {
             CWJ_ASSERT_MGS(false, "Coroutine::call swapcontext fail");
         }
+
+#else
+
+        DEBUG_LOG(g_logger) << "Coroutine:: swap";
+        swapCpuCtx(&co->m_cpu_ctx,&m_cpu_ctx);
+
+#endif
+
     }
 
     Coroutine::ptr Coroutine::GetThis() {

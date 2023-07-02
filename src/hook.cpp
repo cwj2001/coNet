@@ -97,10 +97,21 @@ namespace CWJ_CO_NET {
 
         auto fd_ctx = CWJ_CO_NET::FdMgr::GetInstance()->get(sockfd, true);
 
-//        if (fd_ctx->isMClose() || !fd_ctx->isMIsNonblock()
-//            /*|| !fd_ctx->isMIsSocket()*/) {
-//            return func(sockfd, std::forward<Args>(args)...);
+        if(fd_ctx->isMClose()){
+            return func(sockfd, std::forward<Args>(args)...);
+        }
+
+//        if(!fd_ctx->isMIsSocket()){
+//
 //        }
+
+        if (!fd_ctx->isMIsNonblock() ) {
+            if(SetNonblock(sockfd) == -1){
+                return func(sockfd, std::forward<Args>(args)...);
+            }else{
+                fd_ctx->setMIsNonblock(true);
+            }
+        }
 
 //        if(name == "recv"){
 //            CWJ_ASSERT(false);
