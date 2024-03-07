@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/yaml-cpp-parse.dir/parse.cpp.o  -o parse  -Wl,-rpath,/home/cwj2001/cwj/myCppProject/yaml-cpp/build ../libyaml-cpp.so.0.7.0 

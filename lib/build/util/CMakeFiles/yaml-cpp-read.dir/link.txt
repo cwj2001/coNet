@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/yaml-cpp-read.dir/read.cpp.o  -o read  -Wl,-rpath,/home/cwj2001/cwj/myCppProject/yaml-cpp/build ../libyaml-cpp.so.0.7.0 
